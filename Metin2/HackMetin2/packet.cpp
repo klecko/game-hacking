@@ -13,7 +13,6 @@ typedef unsigned char byte;
 packet_struct std_pkt_struct;
 bool ready_to_send = false;
 
-//PENSAR CAMBIAR POR QUE RECORRA UN VECTOR?
 Packet* parse_packet_send(const string& buf) {
 	byte header = buf[0];
 	switch (header){
@@ -55,24 +54,37 @@ string Packet::get_buf(){
 	return "";
 }
 
-packet_struct* Packet::get_packet_struct(packet_struct std){
+void Packet::attach_to_pkt_struct(packet_struct* pkt_struct){
 	string s = this->get_buf();
-	packet_struct* new_pkt_struct = new packet_struct(std); //hago una copia del pkt struct
-	new_pkt_struct->buf_send_len = s.length();
-	new_pkt_struct->buf_send = new char[s.length() + 1]; //creo un nuevo buffer para que no apunte al que usa el cliente
-	memcpy(new_pkt_struct->buf_send, s.c_str(), s.length());
-	//strcpy_s(new_pkt_struct->buf_send, s.length() + 1, s.c_str());
-	return new_pkt_struct;
+	pkt_struct->buf_send_len = s.length();
+	memcpy(pkt_struct->buf_send, s.c_str(), s.length());
+	pkt_struct->buf_send[s.length()] = '\x00';
 }
 
-void Packet::send(){
-	if (ready_to_send){
-		packet_struct* pkt_struct = this->get_packet_struct(std_pkt_struct);
-		cout << "Sent packet: " << string_to_hex(string(pkt_struct->buf_send, pkt_struct->buf_send_len)) << endl;
-		OriginalMySend(pkt_struct);
-		if (pkt_struct->buf_send) delete pkt_struct->buf_send;
-		delete pkt_struct;
-	} else cout << "Attempted to send a packet, but there is not packet struct yet!" << endl;
+// Anteriormente los dos métodos send creaban un nuevo pkt_struct (uno a partir del std,
+// otro a partir del argumento). Eso hacía que no se pudiera interceptar un paquete, ya que
+// no modificabamos el pkt_struct original, se interpretaba como que el send habia fallado,
+// y se volvía a intentar todo el rato.
+int Packet::send(packet_struct* pkt_struct){
+	// Use the given pkt_struct. Just attach to it and call OriginalMySend
+	attach_to_pkt_struct(pkt_struct);
+	return OriginalMySend(pkt_struct);
+}
+
+int Packet::send(){
+	// Create a new pkt_struct from std_pkt_struct and a new send_buffer and send.
+	int ret = 0;
+	if (ready_to_send) {
+		packet_struct* new_pkt_struct = new packet_struct(std_pkt_struct); //hago una copia del pkt struct
+		new_pkt_struct->buf_send = new char[this->get_buf().length() + 1]; //creo un nuevo buffer para que no apunte al que usa el cliente
+		send(new_pkt_struct);
+
+		cout << "Sent packet: " << string_to_hex(string(new_pkt_struct->buf_send, new_pkt_struct->buf_send_len)) << endl;
+		delete new_pkt_struct->buf_send;
+		delete new_pkt_struct;
+	}
+	else cout << "Attempted to send a packet, but there is not packet struct yet!" << endl;
+	return ret;
 }
 
 
@@ -116,7 +128,7 @@ void CG_MovePacket::set_type_str() {
 }
 
 void CG_MovePacket::print(){
-	cout << dec << "[SEND] Move packet of type " << type_str << " and subtype " << (int)subtype << ", to " << x << ", " << y << " and direction " << (unsigned int)direction << ". Time: " << time << endl << hex;
+	cout << dec << "[SEND] Move packet of type " << type_str << " and subtype " << (int)subtype << ", to (" << x << ", " << y << ") and direction " << (unsigned int)direction << ". Time: " << time << endl << hex;
 }
 
 string CG_MovePacket::get_buf(){
@@ -178,18 +190,40 @@ string GC_MovePacket::get_buf() {
 
 
 //CG_CHATPACKET
+/* [TYPES]
+0: Normal
+1:
+2: TipMessage
+3: Group?
+4: Guild
+5: Commands
+6: Llamar
+*/
+CG_ChatPacket::CG_ChatPacket(byte type, const string& msg){
+	header = HEADER_CG_CHAT;
+	this->type = type;
+	this->msg = msg;
+}
+
 CG_ChatPacket::CG_ChatPacket(const string& buf){
 	header = HEADER_CG_CHAT;
-	length = buf[1]-5;
+	int length = u16(buf.substr(1,2)) - 5;
+	type = buf[3];
 	msg = string(buf, 4, length);
 }
 
 void CG_ChatPacket::print(){
-	cout << "[SEND] CHAT PACKET: " << msg << endl;
+	cout << "[SEND] CHAT PACKET OF TYPE " << (int)type << ": " << msg << endl;
 }
 
 string CG_ChatPacket::get_buf() {
-	return "";
+	string buf;
+	buf += header;
+	buf += p16(msg.length()+5);
+	buf += type;
+	buf += msg + '\x00'; // null cstring
+	buf += '\x00';
+	return buf;
 }
 
 

@@ -9,8 +9,10 @@
 #include "utils.h"
 
 /*
+[TODO]
 VER QUÉ PAQUETES ENVIA EL CLIENTE CUANDO LE MODIFICA LA SPEED Y ATACA
 El cliente modifica | por || al enviar mensajes porque los | se usa para colores. Si escribes |cFFFFFF00|H|hhola sale en color.
+Create getters and setters. Maybe do every attribute public?
 */
 
 
@@ -21,12 +23,10 @@ FILE* pCout;
 FILE* pCin;
 
 void print_inicio(){
-	//cuando se mete en el juego eso se pone a 0xca
-	while (*(byte*)((DWORD)addr::ChatObject+0x54) != 0xca){ 
+	while (!ingame())
 		Sleep(1000);
-	}
 
-	Sleep(3000);
+	Sleep(2000);
 	print("Welcome to heaven, boy.");
 }
 
@@ -40,7 +40,6 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved) {
 			freopen_s(&pCout, "CONOUT$", "w", stdout);
 			freopen_s(&pCin, "CONIN$", "r", stdin);
 			cout << "HI BABE" << hex << endl;
-
 			sigscan();
 			detours();
 

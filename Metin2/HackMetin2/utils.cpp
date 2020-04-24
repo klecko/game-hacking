@@ -29,23 +29,33 @@ string string_to_hex(const string& input){
 	return output;
 }
 
-int u32(const string& buffer){
+/*int u32(const string& buffer){
 	int a = 0;
 	for (int i = 0; i < 4; i++)
 		a = a | (((byte)buffer[i]) << i*8);
-		/*int((byte)(buffer[0])|
-		(byte)(buffer[1]) << 8 |
-		(byte)(buffer[2]) << 16 |
-		(byte)(buffer[3]) << 24);*/
 	return a;
+}*/
+
+int u(int bytes, const string& buffer){
+	int result = 0;
+	for (int i = 0; i < bytes; i++)
+		result |= (((byte)buffer[i]) << i*8);
+	return result;
 }
 
-string p32(int n){
+string p(int bytes, int n){
+	string result;
+	for (int i = 0; i < bytes; i++)
+		result += (byte)((n >> (i*8)) & 0xFF);
+	return result;
+}
+
+/*string p32(int n){
 	string result;
 	for (int i = 0; i < 4; i++)
 		result += (byte)((n >> (i*8)) & 0xff);
 	return result;
-}
+}*/
 
 vector<string> split(const string& s, char delimiter)
 {
@@ -67,20 +77,6 @@ std::string replace_all(std::string str, const std::string& from, const std::str
 	}
 	return str;
 }
-/*
-string color(byte r, byte g, byte b){
-	
-	//|cFFFFFF00|H|hhola|cFFA7FFD4
-
-	//|cFFA7FFD4|H|hhola
-	
-	//cout << string_to_hex((char)r) << endl;
-	stringstream s;
-	s << hex << "|cFF";
-	s << setw(2) << setfill('0') << (int)r << setw(2) << setfill('0') << (int)g << setw(2) << setfill('0')  << (int)b << "|H|h";
-	//cout << "printing color: " << s.str() << endl;
-	return s.str();
-}*/
 
 string color() {
 	string s = "|h|r"; //nocolor
@@ -88,7 +84,7 @@ string color() {
 }
 
 string color(string c){
-	string s;
+	string s = "";
 	if (c.length() == 6)
 		s = "|cFF" + c + "|H|h";
 	else
@@ -97,10 +93,15 @@ string color(string c){
 }
 
 void print(string msg) {
-	msg = color(COLOR_HACK) + "[HACK]" + color() + msg;
+	msg = color(COLOR_HACK) + "[HACK] " + color() + msg;
 	OriginalAppendChat(addr::ChatObject, 0, msg.c_str());
 }
 
 void print_err(string msg){
 	print(color(COLOR_ERR) + "[ERROR] " + color() + msg);
+}
+
+bool ingame(){
+	//cuando se mete en el juego eso se pone a 0xca
+	return ( *(byte*)((DWORD)addr::ChatObject + 0x54) == 0xca );
 }

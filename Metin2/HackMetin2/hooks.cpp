@@ -20,6 +20,25 @@ pChat_t OriginalChat;
 pGetTime_t OriginalGetTime;
 pAppendChat_t OriginalAppendChat;
 
+const char process[] = "metin2client.exe";
+
+// Patterns of functions for sigscanning
+namespace pattern {
+	const char MySend[]= "\x56\x57\x8B\xF1\xE8\x00\x00\x00\x00\x8B\xF8\x85\xFF\x7E\x4A\x8B\xCE\xE8\x00\x00\x00\x00\x84\xC0";
+	const char MyRecv[] = "\x56\x8B\xF1\x57\x8B\x56\x28\x85\xD2\x7E\x27\x8B\x46\x24\x2B\xC2\x85\xC0\x7E\x11";
+	const char Chat[] = "\x55\x8B\xEC\x83\xEC\x0C\x89\x4D\xFC\x8B\x45\x08\x50\xE8\x00\x00\x00\x00\x83\xC4\x04\x85\xC0";
+	const char GetTime[] = "\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x2B\x0D\x00\x00\x00\x00\x03\xC1\xC3";
+	const char AppendChat[] = "\x55\x8B\xEC\x83\xEC\x20\x89\x4D\xFC\xE8\x00\x00\x00\x00\x89\x45\xEC\x83\x7D\xEC\x00\x75\x12\x68\x00\x00\x00\x00\xE8\x00\x00\x00\x00";
+}
+
+// Mask of patterns for sigscanning
+namespace mask {
+	const char MySend[] = "xxxxx????xxxxxxxxx????xx";
+	const char MyRecv[] = "xxxxxxxxxxxxxxxxxxxx";
+	const char Chat[] = "xxxxxxxxxxxxxx????xxxxx";
+	const char GetTime[] = "xx????x????xx????xx????xxx";
+	const char AppendChat[] = "xxxxxxxxxx????xxxxxxxxxx????x????";
+}
 
 namespace addr {
 	DWORD Base;
@@ -31,15 +50,16 @@ namespace addr {
 	void* ChatObject;
 }
 
+
 void sigscan() {
 	cout << "Sigscanning..." << endl;
 	SigScan scanner;
 	addr::Base = (DWORD)GetModuleHandle(NULL);
-	addr::MySend = (void*)scanner.FindPattern("metin2client.exe", "\x56\x57\x8B\xF1\xE8\x00\x00\x00\x00\x8B\xF8\x85\xFF\x7E\x4A\x8B\xCE\xE8\x00\x00\x00\x00\x84\xC0", "xxxxx????xxxxxxxxx????xx");
-	addr::MyRecv = (void*)scanner.FindPattern("metin2client.exe", "\x56\x8B\xF1\x57\x8B\x56\x28\x85\xD2\x7E\x27\x8B\x46\x24\x2B\xC2\x85\xC0\x7E\x11", "xxxxxxxxxxxxxxxxxxxx");
-	addr::Chat = (void*)scanner.FindPattern("metin2client.exe", "\x55\x8B\xEC\x83\xEC\x0C\x89\x4D\xFC\x8B\x45\x08\x50\xE8\x00\x00\x00\x00\x83\xC4\x04\x85\xC0", "xxxxxxxxxxxxxx????xxxxx");
-	addr::GetTime = (void*)scanner.FindPattern("metin2client.exe", "\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x2B\x0D\x00\x00\x00\x00\x03\xC1\xC3", "xx????x????xx????xx????xxx");
-	addr::AppendChat = (void*)scanner.FindPattern("metin2client.exe", "\x55\x8B\xEC\x83\xEC\x20\x89\x4D\xFC\xE8\x00\x00\x00\x00\x89\x45\xEC\x83\x7D\xEC\x00\x75\x12\x68\x00\x00\x00\x00\xE8\x00\x00\x00\x00", "xxxxxxxxxx????xxxxxxxxxx????x????");
+	addr::MySend = (void*)scanner.FindPattern(process, pattern::MySend, mask::MySend);
+	addr::MyRecv = (void*)scanner.FindPattern(process, pattern::MyRecv, mask::MyRecv);
+	addr::Chat = (void*)scanner.FindPattern(process, pattern::Chat, mask::Chat);
+	addr::GetTime = (void*)scanner.FindPattern(process, pattern::GetTime, mask::GetTime);
+	addr::AppendChat = (void*)scanner.FindPattern(process, pattern::AppendChat, mask::AppendChat);
 	addr::ChatObject = (void*)(*(DWORD*)(addr::Base + 0x2fe560)+4); //[base+0x2fe560]+4
 
 	cout << "MySend found at " << (DWORD)addr::MySend << endl;
@@ -48,10 +68,17 @@ void sigscan() {
 	cout << "GetTime found at " << (DWORD)addr::GetTime << endl;
 	cout << "RecvChat found at " << (DWORD)addr::AppendChat << endl;
 	cout << "ChatObject found at " << (DWORD)addr::ChatObject << endl;
+
+	// Function assignation
+	OriginalMySend = (pMySend_t)addr::MySend;
+	OriginalMyRecv = (pMyRecv_t)addr::MyRecv;
+	OriginalChat = (pChat_t)addr::Chat;
+	OriginalGetTime = (pGetTime_t)addr::GetTime;
+	OriginalAppendChat = (pAppendChat_t)addr::AppendChat;
 }
 
 void detours() {
-	cout << "Doing detours..." << endl;
+	cout << endl << "Doing detours..." << endl;
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
 	DetourAttach(&addr::MySend, HookMySend);
@@ -59,11 +86,16 @@ void detours() {
 	DetourAttach(&addr::Chat, HookChat);
 	DetourTransactionCommit();
 
+	// Function update, as original func addresses change after detour
 	OriginalMySend = (pMySend_t)addr::MySend;
 	OriginalMyRecv = (pMyRecv_t)addr::MyRecv;
 	OriginalChat = (pChat_t)addr::Chat;
-	OriginalGetTime = (pGetTime_t)addr::GetTime; //not hooking
-	OriginalAppendChat = (pAppendChat_t)addr::AppendChat;
+	cout << "MySend found at " << (DWORD)addr::MySend << endl;
+	cout << "MyRecv found at " << (DWORD)addr::MyRecv << endl;
+	cout << "Chat found at " << (DWORD)addr::Chat << endl;
+	cout << "GetTime found at " << (DWORD)addr::GetTime << endl;
+	cout << "RecvChat found at " << (DWORD)addr::AppendChat << endl;
+	cout << "ChatObject found at " << (DWORD)addr::ChatObject << endl;
 
 	cout << "DONE!" << endl;
 }
@@ -78,27 +110,32 @@ int __fastcall HookMySend(packet_struct *_this) {
 	string buf(_this->buf_send, _this->buf_send_len);
 	string hex_buf = string_to_hex(buf);
 
-	//string msg = color("ffff00") + "hola mundo" + color("ff0000") + "adiosjeje";
-	//OriginalAppendChat(addr::ChatObject, 0, msg.c_str());
-
 	Packet* ppacket = parse_packet_send(buf);
 	ppacket->print();
 
+	if (ingame() && !ready_to_send) {
+		std_pkt_struct = *_this;
+		cout << "Packet copied! We can already send packets." << endl;
+		ready_to_send = true;
+	}
+
 	if (ppacket->get_header() == HEADER_CG_MOVE){
-		if (!ready_to_send){
-			std_pkt_struct = *_this;
-			print("Packet copied! You can already send packets.");
-			ready_to_send = true;
-		}
+		
 	} else if (ppacket->get_header() == HEADER_CG_TARGET){
 		ID_ATTACK = ((CG_TargetPacket*)ppacket)->get_id();
 		print("New ID selected: " + to_string(ID_ATTACK));
+	} else if (ppacket->get_header() == HEADER_CG_CHAT){
+		cout << "BUF: " << hex_buf << endl;
+		((CG_ChatPacket*)ppacket)->set_msg("CENSORED");
+		int ret = ppacket->send(_this);
+		delete ppacket;
+		return ret;		
 	}
 
-	if (!ppacket->get_header()) cout << hex_buf << endl;
+	// Print unknown packets
+	//if (!ppacket->get_header()) cout << hex_buf << endl;
 	delete ppacket;
 	
-	//cout << "Last byte: " << hex_buf[_this->buf_send_len * 2 - 2] << hex_buf[_this->buf_send_len * 2 - 1] << endl;
 	return OriginalMySend(_this);
 }
 
@@ -128,11 +165,9 @@ int __fastcall HookChat(packet_struct *_this, int edx, const char* input, char p
 	if (input[0] == '$'){
 		OriginalAppendChat(addr::ChatObject, 0, replace_all(input, "||", "|").c_str());
 		return 1;
+	} else if (input[0] == '@'){
+		command(input);
+		return 1;
 	}
-	if (!(input[0] == '@'))
-		return OriginalChat(_this, replace_all(input, "||", "|").c_str(), param2);
-
-	command(input);
-
-	return 1;
+	return OriginalChat(_this, replace_all(input, "||", "|").c_str(), param2);
 }
