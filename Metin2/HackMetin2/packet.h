@@ -50,6 +50,12 @@
  *
  */
 
+/**
+ * [NOTES]
+ *  - Last byte of each packet send buf seems to change with every packet,
+ *    always in the same order. However, just setting a null byte seems to work
+ */
+
 #pragma once
 
 #include <string>
@@ -69,6 +75,9 @@ Packet* parse_packet_send(const std::string& buf);
 Packet* parse_packet_recv(const std::string& buf);
 
 class Packet{
+private:
+	std::string buf;
+
 protected:
 	byte header=0;
 
@@ -82,7 +91,7 @@ public:
 	Packet() {};
 
 	// Builds the packet given the buffer
-	Packet(const std::string& buf) {};
+	Packet(const std::string& buf);
 
 	const byte get_header() const { return header; };
 
@@ -187,4 +196,28 @@ public:
 	CG_AttackPacket(byte type, int id, byte unk1, byte unk2);
 	CG_AttackPacket(const std::string& buf);
 	void print();
+};
+
+class CG_ItemUse : public Packet {
+private:
+	byte item_pos;
+
+	std::string get_buf();
+
+public:
+	CG_ItemUse() {};
+	CG_ItemUse(byte item_pos);
+	CG_ItemUse(const std::string& buf);
+	void print();
+};
+
+// TODO
+class CG_ItemDrop : public Packet {
+private:
+	byte item_pos;
+	int yang;
+
+	std::string get_buf();
+public:
+	CG_ItemDrop() {};
 };

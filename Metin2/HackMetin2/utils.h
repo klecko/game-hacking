@@ -3,8 +3,10 @@
 #include <string>
 #include <vector>
 
-// Hex representation of an ascii string
+// Hex representation of an ascii string and backwards
 std::string string_to_hex(const std::string& input);
+std::string hex_to_string(const std::string& input);
+
 
 // Unpacking and packing
 #define u16(buf) u(2, buf)

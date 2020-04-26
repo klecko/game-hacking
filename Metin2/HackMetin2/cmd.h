@@ -11,6 +11,8 @@ extern uint ID_ATTACK;
  * Current commands:
  * - move type x y: moves to coords (x, y)
  * - attack: attacks the chosen target
+ * - msg type message: sends the message as selected type
+ * - send hexbuf: sends the packet built with the hextbuf
  *
  * TODO: handle errors PL0X
 */

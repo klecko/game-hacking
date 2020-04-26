@@ -29,12 +29,15 @@ string string_to_hex(const string& input){
 	return output;
 }
 
-/*int u32(const string& buffer){
-	int a = 0;
-	for (int i = 0; i < 4; i++)
-		a = a | (((byte)buffer[i]) << i*8);
-	return a;
-}*/
+string hex_to_string(const string& input){
+	string output;
+	string byte_str;
+	for (int i = 0; i < input.length(); i+=2){
+		byte_str = input.substr(i, 2);
+		output += (byte)stol(byte_str, NULL, 16);
+	}
+	return output;
+}
 
 int u(int bytes, const string& buffer){
 	int result = 0;
@@ -49,13 +52,6 @@ string p(int bytes, int n){
 		result += (byte)((n >> (i*8)) & 0xFF);
 	return result;
 }
-
-/*string p32(int n){
-	string result;
-	for (int i = 0; i < 4; i++)
-		result += (byte)((n >> (i*8)) & 0xff);
-	return result;
-}*/
 
 vector<string> split(const string& s, char delimiter)
 {

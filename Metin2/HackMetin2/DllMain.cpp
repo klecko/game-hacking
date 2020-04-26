@@ -10,9 +10,25 @@
 
 /*
 [TODO]
-VER QUÉ PAQUETES ENVIA EL CLIENTE CUANDO LE MODIFICA LA SPEED Y ATACA
-El cliente modifica | por || al enviar mensajes porque los | se usa para colores. Si escribes |cFFFFFF00|H|hhola sale en color.
+Teleport
+Autodmg for near targets
+Description and error handling in cmd
 Create getters and setters. Maybe do every attribute public?
+DEFAULT CONSTRUCTORS ARE NOT SETTING HEADER!!
+
+Throwing and picking up 1 yang:
+14000000010000000036
+0F575E14007C
+14000000010000000033
+0F275F14002F
+14000000010000000098
+0FC85F140076
+
+Throwing other items:
+1401010000000000014E  
+14010500000000000116
+140105000000000033F1
+
 */
 
 

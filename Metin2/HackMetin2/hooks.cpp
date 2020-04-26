@@ -102,11 +102,6 @@ void detours() {
 
 
 int __fastcall HookMySend(packet_struct *_this) {
-	//Parece que el ultimo byte del final sigue una secuencia.
-	//en los primeros bytes nos encontramos un 01 seguido de un 2e
-	//Hacer un metodo de packet que te devuelva un packet_struct.
-	//hay direcciones que cambian con cada logeo, como 0x50 (pointer_crypto?).
-	//pillarlas en un paquete y guardarlas
 	string buf(_this->buf_send, _this->buf_send_len);
 	string hex_buf = string_to_hex(buf);
 
@@ -119,21 +114,13 @@ int __fastcall HookMySend(packet_struct *_this) {
 		ready_to_send = true;
 	}
 
-	if (ppacket->get_header() == HEADER_CG_MOVE){
-		
-	} else if (ppacket->get_header() == HEADER_CG_TARGET){
+	if (ppacket->get_header() == HEADER_CG_TARGET){
 		ID_ATTACK = ((CG_TargetPacket*)ppacket)->get_id();
 		print("New ID selected: " + to_string(ID_ATTACK));
-	} else if (ppacket->get_header() == HEADER_CG_CHAT){
-		cout << "BUF: " << hex_buf << endl;
-		((CG_ChatPacket*)ppacket)->set_msg("CENSORED");
-		int ret = ppacket->send(_this);
-		delete ppacket;
-		return ret;		
 	}
 
-	// Print unknown packets
-	//if (!ppacket->get_header()) cout << hex_buf << endl;
+	//Print unknown packets
+	if (!ppacket->get_header()) cout << hex_buf << endl;
 	delete ppacket;
 	
 	return OriginalMySend(_this);
@@ -160,6 +147,8 @@ int __fastcall HookMyRecv(packet_struct *_this){
 
 
 int __fastcall HookChat(packet_struct *_this, int edx, const char* input, char param2){
+	// Client replaces | with || when sending msgs because | are used for
+	// colors. Example: |cFFFFFF00|H|hhola. 
 	cout << "CHAT: " << input << endl;
 
 	if (input[0] == '$'){

@@ -18,16 +18,14 @@ Packet* parse_packet_send(const string& buf) {
 	switch (header){
 		case HEADER_CG_MOVE:
 			return new CG_MovePacket(buf);
-			break;
 		case HEADER_CG_CHAT:
 			return new CG_ChatPacket(buf);
-			break;
 		case HEADER_CG_TARGET:
 			return new CG_TargetPacket(buf);
-			break;
 		case HEADER_CG_ATTACK:
 			return new CG_AttackPacket(buf);
-			break;
+		case HEADER_CG_ITEM_USE:
+			return new CG_ItemUse(buf);
 		default:
 			return new Packet();
 	}
@@ -46,13 +44,20 @@ Packet* parse_packet_recv(const string& buf) {
 
 
 //PACKET
+Packet::Packet(const string& buf){
+	if (!buf.empty())
+		header = buf[0];
+	this->buf = buf;
+}
 void Packet::print(){
 	//cout << "UNKNOWN PACKET" << endl;
 }
 
 string Packet::get_buf(){
-	return "";
+	return buf;
 }
+
+
 
 void Packet::attach_to_pkt_struct(packet_struct* pkt_struct){
 	string s = this->get_buf();
@@ -68,6 +73,8 @@ void Packet::attach_to_pkt_struct(packet_struct* pkt_struct){
 int Packet::send(packet_struct* pkt_struct){
 	// Use the given pkt_struct. Just attach to it and call OriginalMySend
 	attach_to_pkt_struct(pkt_struct);
+	cout << "Sent packet: " << string_to_hex(string(pkt_struct->buf_send, pkt_struct->buf_send_len)) << endl;
+	this->print();
 	return OriginalMySend(pkt_struct);
 }
 
@@ -78,8 +85,6 @@ int Packet::send(){
 		packet_struct* new_pkt_struct = new packet_struct(std_pkt_struct); //hago una copia del pkt struct
 		new_pkt_struct->buf_send = new char[this->get_buf().length() + 1]; //creo un nuevo buffer para que no apunte al que usa el cliente
 		send(new_pkt_struct);
-
-		cout << "Sent packet: " << string_to_hex(string(new_pkt_struct->buf_send, new_pkt_struct->buf_send_len)) << endl;
 		delete new_pkt_struct->buf_send;
 		delete new_pkt_struct;
 	}
@@ -278,3 +283,29 @@ string CG_AttackPacket::get_buf(){
 	buf += '\x00';
 	return buf;
 }
+
+// CG_ItemUse
+CG_ItemUse::CG_ItemUse(byte item_pos){
+	header = HEADER_CG_ITEM_USE;
+	this->item_pos = item_pos;
+}
+
+CG_ItemUse::CG_ItemUse(const std::string& buf){
+	header = HEADER_CG_ITEM_USE;
+	item_pos = buf[2];
+}
+
+string CG_ItemUse::get_buf(){
+	string buf;
+	buf += header;
+	buf += '\x01'; // seems to be always 1?
+	buf += item_pos;
+	buf += '\x00'; // padding?
+	buf += '\x00';
+	return buf;
+}
+
+void CG_ItemUse::print(){
+	cout << "[SEND] Using item " << (int)item_pos << endl;
+}
+
