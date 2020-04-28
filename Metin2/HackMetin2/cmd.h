@@ -2,6 +2,7 @@
 
 #include <string>
 
+// Chosen target, changed when CG_TargetPacket is sent
 extern uint ID_ATTACK;
 
 /*

@@ -119,6 +119,10 @@ int __fastcall HookMySend(packet_struct *_this) {
 		print("New ID selected: " + to_string(ID_ATTACK));
 	}
 
+	if (ppacket->get_header() == HEADER_CG_ITEM_USE || ppacket->get_header() == HEADER_CG_ITEM_DROP2){
+		//cout << "Received: " << hex_buf << endl;
+	}
+
 	//Print unknown packets
 	if (!ppacket->get_header()) cout << hex_buf << endl;
 	delete ppacket;

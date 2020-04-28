@@ -12,22 +12,30 @@
 [TODO]
 Teleport
 Autodmg for near targets
+Wallhack!
 Description and error handling in cmd
-Create getters and setters. Maybe do every attribute public?
-DEFAULT CONSTRUCTORS ARE NOT SETTING HEADER!!
+Investigar unks de attack, parecen variar dependiendo de la clase
 
-Throwing and picking up 1 yang:
-14000000010000000036
-0F575E14007C
-14000000010000000033
-0F275F14002F
-14000000010000000098
-0FC85F140076
+Packets attacking with a bow a metin whose id was: 191193 (0x02ead9)
+seems like there are two packets?
 
-Throwing other items:
-1401010000000000014E  
-14010500000000000116
-140105000000000033F1
+header target_id(int) ?? another_packet
+parece que ?? va cambiando :(
+
+33 D9EA0200 70A30E00718102006F 07030E0468A10E0066B90300A8BF1F020C
+360015
+33D9EA020070A30E0071810200A407030E0468A10E0066B9030002C31F02DC
+36008D
+33D9EA020070A30E00718102004F07030E0468A10E0066B903005CC61F020B
+3600A6
+33D9EA020070A30E00718102004707030E0468A10E0066B90300B6C91F02A5
+3600B7
+33D9EA020070A30E0071810200A507030E0468A10E0066B9030010CD1F02F0
+360041
+33D9EA020070A30E00718102001707030E0468A10E0066B903006AD01F026C
+3600FE
+33D9EA020070A30E00718102009C07030E0468A10E0066B90300C4D31F020D
+360063
 
 */
 
@@ -50,22 +58,20 @@ void print_inicio(){
 
 
 BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved) {
-	if (dwReason == DLL_PROCESS_ATTACH || dwReason == DLL_PROCESS_DETACH) {
-		if (dwReason == DLL_PROCESS_ATTACH) {
-			AllocConsole();
-			freopen_s(&pCout, "CONOUT$", "w", stdout);
-			freopen_s(&pCin, "CONIN$", "r", stdin);
-			cout << "HI BABE" << hex << endl;
-			sigscan();
-			detours();
+	if (dwReason == DLL_PROCESS_ATTACH) {
+		AllocConsole();
+		freopen_s(&pCout, "CONOUT$", "w", stdout);
+		freopen_s(&pCin, "CONIN$", "r", stdin);
+		cout << "HI BABE" << hex << endl;
+		sigscan();
+		detours();
+		cout << dec;
+		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)print_inicio, 0, 0, 0);
 
-			CreateThread(0, 0, (LPTHREAD_START_ROUTINE)print_inicio, 0, 0, 0);
-		}
-		else if (dwReason == DLL_PROCESS_DETACH) {
-			cout << "see you.." << endl;
-			fclose(pCout);
-			fclose(pCin);
-		}
+	} else if (dwReason == DLL_PROCESS_DETACH) {
+		cout << "see you.." << endl;
+		fclose(pCout);
+		fclose(pCin);
 	}
 	return true;
 }

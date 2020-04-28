@@ -9,8 +9,21 @@
 
 using namespace std;
 
-// Chosen target, changed when CG_TargetPacket is sent
 uint ID_ATTACK;
+
+// Sending attack packets?
+bool attacking = false;
+
+// Testing
+void attack(){
+	while (attacking){
+		if (ID_ATTACK){
+			CG_AttackPacket p(0, ID_ATTACK, 92, 247);
+			p.send();
+			Sleep(100);
+		}
+	}
+}
 
 void command(string s){
 	s = s.substr(1, s.length()-1);
@@ -38,6 +51,21 @@ void command(string s){
 		string hexbuf = cmd[1];
 		Packet p(hex_to_string(hexbuf));
 		p.send();
+	} else if (cmd[0] == "start_attack") {
+		attacking = true;
+		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)attack, 0, 0, 0);
+	} else if (cmd[0] == "stop_attacking") {
+		attacking = false;
+	} else if (cmd[0] == "shoot"){
+		// TESTING
+		string buf("\x33");
+		buf += p32(ID_ATTACK);
+		buf += string("\x70\xa3\x0e\x00\x71\x81\x02\x00\x00", 9);
+		string buf2("\x36\x00\x00", 3);
+		Packet p1(buf);
+		Packet p2(buf2);
+		p1.send();
+		p2.send();
 	} else print_err("Unknown command");
 
 }

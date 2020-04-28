@@ -76,11 +76,11 @@ Packet* parse_packet_recv(const std::string& buf);
 
 class Packet{
 private:
+	// Generic packet can have any header
+	byte header = 0;
 	std::string buf;
 
 protected:
-	byte header=0;
-
 	// Builds the buffer that will be sent to the server
 	virtual std::string get_buf();
 
@@ -105,6 +105,7 @@ public:
 
 class CG_MovePacket : public Packet{
 private:
+	static const byte header = HEADER_CG_MOVE;
 	byte type;
 	byte subtype;
 	byte direction;
@@ -127,6 +128,7 @@ public:
 
 class GC_MovePacket : public Packet {
 private:
+	static const byte header = HEADER_GC_MOVE;
 	byte type;
 	byte subtype;
 	byte direction;
@@ -150,6 +152,7 @@ public:
 
 class CG_ChatPacket : public Packet {
 private:
+	static const byte header = HEADER_CG_CHAT;
 	std::string msg;
 	byte type;
 
@@ -170,6 +173,7 @@ public:
 
 class CG_TargetPacket : public Packet {
 private:
+	static const byte header = HEADER_CG_TARGET;
 	int id;
 
 	std::string get_buf();
@@ -184,6 +188,7 @@ public:
 
 class CG_AttackPacket : public Packet {
 private:
+	static const byte header = HEADER_CG_ATTACK;
 	byte type;
 	int id;
 	byte unk1;
@@ -200,6 +205,7 @@ public:
 
 class CG_ItemUse : public Packet {
 private:
+	static const byte header = HEADER_CG_ITEM_USE;
 	byte item_pos;
 
 	std::string get_buf();
@@ -211,13 +217,19 @@ public:
 	void print();
 };
 
-// TODO
 class CG_ItemDrop : public Packet {
 private:
+	static const byte header = HEADER_CG_ITEM_DROP2;
+	bool is_dropping_item;
 	byte item_pos;
-	int yang;
+	byte item_amount;
+	int yang_amount;
 
 	std::string get_buf();
 public:
 	CG_ItemDrop() {};
+	CG_ItemDrop(byte item_pos, byte item_amount);
+	CG_ItemDrop(int yang_amount);
+	CG_ItemDrop(const std::string& buf);
+	void print();
 };

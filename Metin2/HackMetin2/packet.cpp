@@ -26,6 +26,8 @@ Packet* parse_packet_send(const string& buf) {
 			return new CG_AttackPacket(buf);
 		case HEADER_CG_ITEM_USE:
 			return new CG_ItemUse(buf);
+		case HEADER_CG_ITEM_DROP2:
+			return new CG_ItemDrop(buf);
 		default:
 			return new Packet();
 	}
@@ -95,7 +97,6 @@ int Packet::send(){
 
 //CG_MOVEPACKET
 CG_MovePacket::CG_MovePacket(byte type, byte subtype, byte direction, int x, int y, int time){
-	header = HEADER_CG_MOVE;
 	this->type = type;
 	this->subtype = subtype;
 	this->direction = direction;
@@ -106,7 +107,6 @@ CG_MovePacket::CG_MovePacket(byte type, byte subtype, byte direction, int x, int
 }
 
 CG_MovePacket::CG_MovePacket(const string& buf){
-	header = HEADER_CG_MOVE;
 	type = buf[1];
 	subtype = buf[2];
 	direction = buf[3];
@@ -133,7 +133,7 @@ void CG_MovePacket::set_type_str() {
 }
 
 void CG_MovePacket::print(){
-	cout << dec << "[SEND] Move packet of type " << type_str << " and subtype " << (int)subtype << ", to (" << x << ", " << y << ") and direction " << (unsigned int)direction << ". Time: " << time << endl << hex;
+	cout << "[SEND] Move packet of type " << type_str << " and subtype " << (int)subtype << ", to (" << x << ", " << y << ") and direction " << (unsigned int)direction << ". Time: " << time << endl;
 }
 
 string CG_MovePacket::get_buf(){
@@ -149,7 +149,6 @@ string CG_MovePacket::get_buf(){
 
 //GC_MOVEPACKET
 GC_MovePacket::GC_MovePacket(const string& buf) {
-	header = HEADER_GC_MOVE;
 	type = buf[1];
 	subtype = buf[2];
 	direction = buf[3];
@@ -178,7 +177,7 @@ void GC_MovePacket::set_type_str() {
 }
 
 void GC_MovePacket::print() {
-	//cout << dec << "[RECV] Move packet of id " << id << ", type " << type_str << " and subtype " << (int)subtype << ", to " << x << ", " << y << " and direction " << (unsigned int)direction << ". Time: " << time << ". Duration: " << duration << endl << hex;
+	//cout << "[RECV] Move packet of id " << id << ", type " << type_str << " and subtype " << (int)subtype << ", to " << x << ", " << y << " and direction " << (unsigned int)direction << ". Time: " << time << ". Duration: " << duration << endlx;
 }
 
 string GC_MovePacket::get_buf() {
@@ -205,13 +204,11 @@ string GC_MovePacket::get_buf() {
 6: Llamar
 */
 CG_ChatPacket::CG_ChatPacket(byte type, const string& msg){
-	header = HEADER_CG_CHAT;
 	this->type = type;
 	this->msg = msg;
 }
 
 CG_ChatPacket::CG_ChatPacket(const string& buf){
-	header = HEADER_CG_CHAT;
 	int length = u16(buf.substr(1,2)) - 5;
 	type = buf[3];
 	msg = string(buf, 4, length);
@@ -235,7 +232,6 @@ string CG_ChatPacket::get_buf() {
 
 //CG_TARGETPACKET
 CG_TargetPacket::CG_TargetPacket(const string& buf){
-	header = HEADER_CG_TARGET;
 	id = u32(buf.substr(1,4));
 }
 
@@ -254,7 +250,6 @@ string CG_TargetPacket::get_buf(){
 
 //CG_ATTACKPACKET
 CG_AttackPacket::CG_AttackPacket(byte type, int id, byte unk1, byte unk2) {
-	header = HEADER_CG_ATTACK;
 	this->type = type;
 	this->id = id;
 	this->unk1 = unk1;
@@ -262,7 +257,6 @@ CG_AttackPacket::CG_AttackPacket(byte type, int id, byte unk1, byte unk2) {
 }
 
 CG_AttackPacket::CG_AttackPacket(const string& buf){
-	header = HEADER_CG_ATTACK;
 	type = buf[1];
 	id = u32(buf.substr(2,4));
 	unk1 = buf[6];
@@ -286,12 +280,10 @@ string CG_AttackPacket::get_buf(){
 
 // CG_ItemUse
 CG_ItemUse::CG_ItemUse(byte item_pos){
-	header = HEADER_CG_ITEM_USE;
 	this->item_pos = item_pos;
 }
 
 CG_ItemUse::CG_ItemUse(const std::string& buf){
-	header = HEADER_CG_ITEM_USE;
 	item_pos = buf[2];
 }
 
@@ -309,3 +301,47 @@ void CG_ItemUse::print(){
 	cout << "[SEND] Using item " << (int)item_pos << endl;
 }
 
+// CG_ItemDrop
+CG_ItemDrop::CG_ItemDrop(byte item_pos, byte item_amount){
+	is_dropping_item = true;
+	this->item_pos = item_pos;
+	this->item_amount = item_amount;
+	yang_amount = 0;
+}
+
+CG_ItemDrop::CG_ItemDrop(int yang_amount){
+	is_dropping_item = false;
+	item_pos = 0;
+	item_amount = 0;
+	this->yang_amount = yang_amount;
+}
+
+CG_ItemDrop::CG_ItemDrop(const string& buf){
+	is_dropping_item = (bool)buf[1];
+	item_pos = buf[2];
+	yang_amount = u32(buf.substr(4, 4));
+	item_amount = buf[8];
+	if (buf[3] != 0)
+		cout << "CG_ItemDrop strange packet: " << string_to_hex(buf) << endl;
+	if (!is_dropping_item && (item_pos != 0 || item_pos != 0))
+		cout << "CG_ItemDrop strange packet2: " << string_to_hex(buf) << endl;
+}
+
+string CG_ItemDrop::get_buf(){
+	string buf;
+	buf += header;
+	buf += (byte)is_dropping_item;
+	buf += item_pos;
+	buf += '\x00'; // ?
+	buf += p32(yang_amount);
+	buf += item_amount;
+	buf += '\x00';
+	return buf;
+}
+
+void CG_ItemDrop::print(){
+	if (is_dropping_item)
+		cout << "[SEND] Dropping item " << (int)item_pos << ", amount " << (int)item_amount << endl;
+	else
+		cout << "[SEND] Dropping yang, amount " << yang_amount << endl;
+}
