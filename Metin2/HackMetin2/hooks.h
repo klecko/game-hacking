@@ -2,6 +2,7 @@
 #define __HOOKSH__
 
 #include <Windows.h>
+#include <vector>
 #include "packet_struct.h"
 
 // Namespace for every address scanned by sigscan
@@ -13,9 +14,17 @@ namespace addr {
 	extern void* GetTime;
 	extern void* AppendChat;
 	extern void* ChatObject;
+	extern void* PlayerObject;
 }
 
-// Sigscans every function and object and saves its address in namespace addr
+// Reads the pointer list, being the first pointer addr::base + offsets[0]
+// Example: {1,2,3} --> [[base + 1] + 2] + 3
+void* read_pointer_list(std::vector<DWORD> offsets);
+
+// pillar addr de player y de packet_struct cuando inicie el juego
+void get_objects_addresses();
+
+// Sigscans every function and saves its address in namespace addr
 void sigscan();
 
 // Performs detours and updates addresses of original functions

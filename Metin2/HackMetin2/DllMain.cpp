@@ -12,9 +12,11 @@
 [TODO]
 Teleport
 Autodmg for near targets
-Wallhack!
+Fix broken packet headers
 Description and error handling in cmd
 Investigar unks de attack, parecen variar dependiendo de la clase
+Add player struct for changing things easily
+Divide cmd in functions
 
 Packets attacking with a bow a metin whose id was: 191193 (0x02ead9)
 seems like there are two packets?
@@ -36,6 +38,12 @@ parece que ?? va cambiando :(
 3600FE
 33D9EA020070A30E00718102009C07030E0468A10E0066B90300C4D31F020D
 360063
+
+
+[PACKET_STRUCT2]+c parece puntero a algo que parece el player, tiene el nombre.
+y [[PACKET_STRUCT2]+c]+1d4] parece puntero a algo como player_stats, que es lo que yo ahora mismo llamo player
+
+aunque [PACKET_STRUCT2]+c tmb tiene cosas de stats como posicion o direccion
 
 */
 
@@ -66,6 +74,7 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved) {
 		sigscan();
 		detours();
 		cout << dec;
+		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)get_objects_addresses, 0, 0, 0);
 		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)print_inicio, 0, 0, 0);
 
 	} else if (dwReason == DLL_PROCESS_DETACH) {

@@ -29,7 +29,7 @@ Packet* parse_packet_send(const string& buf) {
 		case HEADER_CG_ITEM_DROP2:
 			return new CG_ItemDrop(buf);
 		default:
-			return new Packet();
+			return new Packet(buf);
 	}
 }
 
@@ -51,8 +51,11 @@ Packet::Packet(const string& buf){
 		header = buf[0];
 	this->buf = buf;
 }
+
 void Packet::print(){
-	//cout << "UNKNOWN PACKET" << endl;
+	// Print unknown packets
+	string hex_buf = string_to_hex(get_buf());
+	cout << "UKNOWN PACKET:" << hex_buf << endl;
 }
 
 string Packet::get_buf(){

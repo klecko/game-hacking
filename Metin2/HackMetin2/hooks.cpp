@@ -48,8 +48,43 @@ namespace addr {
 	void* GetTime;
 	void* AppendChat;
 	void* ChatObject;
+	void* PlayerObject;
 }
 
+namespace pointer_lists {
+	vector<DWORD> ChatObject = {0x2fe560, 4};
+	vector<DWORD> PacketStruct = {0x2fe438};
+	vector<DWORD> PlayerObject = {0x2fc158, 0xc, 0x1d4};
+}
+
+void* read_pointer_list(vector<DWORD> offsets){
+	DWORD last_offset = offsets.back();
+	offsets.pop_back(); // Don't access last offset
+
+	DWORD result = addr::Base;
+	for (DWORD offset : offsets){
+		result = *(DWORD*)(result + offset);
+	}
+	return (void*)(result + last_offset);
+}
+
+void get_objects_addresses(){
+	// Unfortunately we can't get the packet_struct here, because we need id
+	// with its state when sending a packet
+	while (!ingame())
+		Sleep(1000);
+
+	cout << "Getting objects addresses..." << hex << endl;
+	addr::PlayerObject = read_pointer_list(pointer_lists::PlayerObject);
+	while (addr::PlayerObject == (void*)0x1d4){
+		cout << "[ERROR] Getting Player Object pointer. Trying again.." << endl;
+		Sleep(2000);
+		addr::PlayerObject = read_pointer_list(pointer_lists::PlayerObject);
+	}
+
+	cout << "PlayerObject found at " << (DWORD)addr::PlayerObject << endl;
+
+}
 
 void sigscan() {
 	cout << "Sigscanning..." << endl;
@@ -60,7 +95,7 @@ void sigscan() {
 	addr::Chat = (void*)scanner.FindPattern(process, pattern::Chat, mask::Chat);
 	addr::GetTime = (void*)scanner.FindPattern(process, pattern::GetTime, mask::GetTime);
 	addr::AppendChat = (void*)scanner.FindPattern(process, pattern::AppendChat, mask::AppendChat);
-	addr::ChatObject = (void*)(*(DWORD*)(addr::Base + 0x2fe560)+4); //[base+0x2fe560]+4
+	addr::ChatObject = read_pointer_list(pointer_lists::ChatObject);
 
 	cout << "MySend found at " << (DWORD)addr::MySend << endl;
 	cout << "MyRecv found at " << (DWORD)addr::MyRecv << endl;
@@ -119,12 +154,6 @@ int __fastcall HookMySend(packet_struct *_this) {
 		print("New ID selected: " + to_string(ID_ATTACK));
 	}
 
-	if (ppacket->get_header() == HEADER_CG_ITEM_USE || ppacket->get_header() == HEADER_CG_ITEM_DROP2){
-		//cout << "Received: " << hex_buf << endl;
-	}
-
-	//Print unknown packets
-	if (!ppacket->get_header()) cout << hex_buf << endl;
 	delete ppacket;
 	
 	return OriginalMySend(_this);
@@ -139,7 +168,7 @@ int __fastcall HookMyRecv(packet_struct *_this){
 	string buf = string(_this->buf_recv, len);
 
 	Packet* ppacket = parse_packet_recv(buf);
-	ppacket->print();
+	//ppacket->print();
 	delete ppacket;
 
 	// cout << "recv bytes: " << len << endl;

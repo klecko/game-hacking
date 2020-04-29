@@ -32,7 +32,7 @@ string string_to_hex(const string& input){
 string hex_to_string(const string& input){
 	string output;
 	string byte_str;
-	for (int i = 0; i < input.length(); i+=2){
+	for (size_t i = 0; i < input.length(); i+=2){
 		byte_str = input.substr(i, 2);
 		output += (byte)stol(byte_str, NULL, 16);
 	}
