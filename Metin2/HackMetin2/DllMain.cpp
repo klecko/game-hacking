@@ -16,7 +16,7 @@ Description and error handling in cmd
 Investigar unks de attack, parecen variar dependiendo de la clase
 Add player struct for changing things easily
 Try to reduce dependencies?
-Update docs
+Set color tags in chat: [hex_color]text[/]
 Maybe set on_hook as a pointer to func so it can be somewhere else?
 
 Packets attacking with a bow a metin whose id was: 191193 (0x02ead9)

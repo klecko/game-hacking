@@ -51,10 +51,9 @@ void Command::msg(byte type, std::string msg){
 }
 
 void Command::set_wallhack(bool activated){
+	// TODO: player structure PL0X
 	*(byte*)((DWORD)addr::PlayerObject + 0x490) = (byte)activated;
-	string msg = "Set wallhack ";
-	msg += (activated ? "on." : "off.");
-	print(msg);
+	print(string("Set wallhack ") + (activated ? "on." : "off."));
 }
 
 void Command::run(string _cmd){

@@ -46,24 +46,22 @@ Packet* parse_packet_recv(const string& buf) {
 }
 
 
-//PACKET
+// [ Packet ]
 Packet::Packet(const string& buf){
 	if (!buf.empty())
-		header = buf[0];
+		this->header = buf[0];
 	this->buf = buf;
 }
 
 void Packet::log(){
 	// Print unknown packets
-	string hex_buf = string_to_hex(get_buf());
+	string hex_buf = string_to_hex(this->get_buf());
 	cout << "UKNOWN PACKET:" << hex_buf << endl;
 }
 
 string Packet::get_buf(){
-	return buf;
+	return this->buf;
 }
-
-
 
 void Packet::attach_to_pkt_struct(packet_struct* pkt_struct){
 	string s = this->get_buf();
@@ -78,19 +76,19 @@ void Packet::attach_to_pkt_struct(packet_struct* pkt_struct){
 // y se volvía a intentar todo el rato.
 int Packet::send(packet_struct* pkt_struct){
 	// Use the given pkt_struct. Just attach to it and call OriginalMySend
-	attach_to_pkt_struct(pkt_struct);
+	this->attach_to_pkt_struct(pkt_struct);
 	cout << "Sent packet: " << string_to_hex(string(pkt_struct->buf_send, pkt_struct->buf_send_len)) << endl;
 	this->log();
 	return OriginalMySend(pkt_struct);
 }
 
 int Packet::send(){
-	// Create a new pkt_struct from std_pkt_struct and a new send_buffer and send.
+	// Create a new pkt_struct from std_pkt_struct and a new send_buffer, and send.
 	int ret = 0;
 	if (ready_to_send) {
 		packet_struct* new_pkt_struct = new packet_struct(std_pkt_struct); //hago una copia del pkt struct
 		new_pkt_struct->buf_send = new char[this->get_buf().length() + 1]; //creo un nuevo buffer para que no apunte al que usa el cliente
-		send(new_pkt_struct);
+		ret = this->send(new_pkt_struct);
 		delete new_pkt_struct->buf_send;
 		delete new_pkt_struct;
 	}
@@ -99,7 +97,7 @@ int Packet::send(){
 }
 
 
-//CG_MOVEPACKET
+// [ CG_MovePacket ]
 CG_MovePacket::CG_MovePacket(byte type, byte subtype, byte direction, int x, int y, int time){
 	this->type = type;
 	this->subtype = subtype;
@@ -107,76 +105,76 @@ CG_MovePacket::CG_MovePacket(byte type, byte subtype, byte direction, int x, int
 	this->x = x;
 	this->y = y;
 	this->time = time;
-	set_type_str();
+	this->set_type_str();
 }
 
 CG_MovePacket::CG_MovePacket(const string& buf){
-	type = buf[1];
-	subtype = buf[2];
-	direction = buf[3];
-	x = u32(buf.substr(4, 4));
-	y = u32(buf.substr(8, 4));
-	time = u32(buf.substr(12, 4));
-	set_type_str();
+	this->type = buf[1];
+	this->subtype = buf[2];
+	this->direction = buf[3];
+	this->x = u32(buf.substr(4, 4));
+	this->y = u32(buf.substr(8, 4));
+	this->time = u32(buf.substr(12, 4));
+	this->set_type_str();
 }
 
 void CG_MovePacket::set_type_str() {
-	switch (type) {
+	switch (this->type) {
 	case 0:
-		type_str = "stop_moving";
+		this->type_str = "stop_moving";
 		break;
 	case 1:
-		type_str = "start_moving";
+		this->type_str = "start_moving";
 		break;
 	case 3:
-		type_str = "attack";
+		this->type_str = "attack";
 		break;
 	default:
-		type_str = "unknown(" + to_string((int)type) + ")";
+		this->type_str = "unknown(" + to_string((int)this->type) + ")";
 	}
 }
 
 void CG_MovePacket::log(){
-	cout << "[SEND] Move packet of type " << type_str << " and subtype " << (int)subtype << ", to (" << x << ", " << y << ") and direction " << (unsigned int)direction << ". Time: " << time << endl;
+	cout << "[SEND] Move packet of type " << this->type_str << " and subtype " << (int)this->subtype << ", to (" << this->x << ", " << this->y << ") and direction " << (unsigned int)this->direction << ". Time: " << this->time << endl;
 }
 
 string CG_MovePacket::get_buf(){
 	string buf;
-	buf += header;
-	buf += type;
-	buf += subtype;
-	buf += direction;
-	buf += p32(x) + p32(y) + p32(OriginalGetTime());
+	buf += this->header;
+	buf += this->type;
+	buf += this->subtype;
+	buf += this->direction;
+	buf += p32(this->x) + p32(this->y) + p32(OriginalGetTime());
 	buf += '\x00';
 	return buf;
 }
 
-//GC_MOVEPACKET
+// [ GC_MovePacket ]
 GC_MovePacket::GC_MovePacket(const string& buf) {
-	type = buf[1];
-	subtype = buf[2];
-	direction = buf[3];
-	id = u32(buf.substr(4, 4));
-	x = u32(buf.substr(8, 4));
-	y = u32(buf.substr(12, 4));
-	time = u32(buf.substr(16, 4));
-	duration = u32(buf.substr(20,4));
-	set_type_str();
+	this->type = buf[1];
+	this->subtype = buf[2];
+	this->direction = buf[3];
+	this->id = u32(buf.substr(4, 4));
+	this->x = u32(buf.substr(8, 4));
+	this->y = u32(buf.substr(12, 4));
+	this->time = u32(buf.substr(16, 4));
+	this->duration = u32(buf.substr(20,4));
+	this->set_type_str();
 }
 
 void GC_MovePacket::set_type_str() {
-	switch (type) {
+	switch (this->type) {
 	case 0:
-		type_str = "stop_moving";
+		this->type_str = "stop_moving";
 		break;
 	case 1:
-		type_str = "start_moving";
+		this->type_str = "start_moving";
 		break;
 	case 3:
-		type_str = "attack";
+		this->type_str = "attack";
 		break;
 	default:
-		type_str = "unknown(" + to_string((int)type) + ")";
+		this->type_str = "unknown(" + to_string((int)this->type) + ")";
 	}
 }
 
@@ -186,18 +184,18 @@ void GC_MovePacket::log() {
 
 string GC_MovePacket::get_buf() {
 	string buf;
-	buf += header;
-	buf += type;
-	buf += subtype;
-	buf += direction;
-	buf += p32(id) + p32(x) + p32(y) + p32(OriginalGetTime());
-	buf += p32(duration);
+	buf += this->header;
+	buf += this->type;
+	buf += this->subtype;
+	buf += this->direction;
+	buf += p32(this->id) + p32(this->x) + p32(this->y) + p32(OriginalGetTime());
+	buf += p32(this->duration);
 	buf += '\x00';
 	return buf;
 }
 
 
-//CG_CHATPACKET
+// [ CG_ChatPacket ]
 /* [TYPES]
 0: Normal
 1:
@@ -214,49 +212,50 @@ CG_ChatPacket::CG_ChatPacket(byte type, const string& msg){
 
 CG_ChatPacket::CG_ChatPacket(const string& buf){
 	int length = u16(buf.substr(1,2)) - 5;
-	type = buf[3];
-	msg = string(buf, 4, length);
+	this->type = buf[3];
+	this->msg = string(buf, 4, length);
 }
 
 void CG_ChatPacket::log(){
-	cout << "[SEND] CHAT PACKET OF TYPE " << (int)type << ": " << msg << endl;
+	cout << "[SEND] CHAT PACKET OF TYPE " << (int)this->type << ": " << this->msg << endl;
 }
 
 string CG_ChatPacket::get_buf() {
 	string buf;
-	buf += header;
-	buf += p16(msg.length()+5);
-	buf += type;
-	buf += msg + '\x00'; // null cstring
+	buf += this->header;
+	buf += p16(this->msg.length()+5);
+	buf += this->type;
+	buf += this->msg + '\x00'; // null cstring
 	buf += '\x00';
 	return buf;
 }
 
 
 
-//CG_TARGETPACKET
+// [ CG_TargetPacket ]
 CG_TargetPacket::CG_TargetPacket(const string& buf){
-	id = u32(buf.substr(1,4));
+	this->id = u32(buf.substr(1,4));
 }
 
 void CG_TargetPacket::log(){
-	cout << "[SEND] TARGET PACKET, ID: " << id << endl;
+	cout << "[SEND] TARGET PACKET, ID: " << this->id << endl;
 }
 
-void CG_TargetPacket::on_hook(){
-	Command::set_id_attack(get_id());
+bool CG_TargetPacket::on_hook(){
+	Command::set_id_attack(this->id);
+	return false;
 }
 
 string CG_TargetPacket::get_buf(){
 	string buf;
-	buf += header;
-	buf += p32(id);
+	buf += this->header;
+	buf += p32(this->id);
 	buf += '\x00';
 	return buf;
 }
 
 
-//CG_ATTACKPACKET
+// [ CG_ATTACKPACKET ]
 CG_AttackPacket::CG_AttackPacket(byte type, int id, byte unk1, byte unk2) {
 	this->type = type;
 	this->id = id;
@@ -265,91 +264,91 @@ CG_AttackPacket::CG_AttackPacket(byte type, int id, byte unk1, byte unk2) {
 }
 
 CG_AttackPacket::CG_AttackPacket(const string& buf){
-	type = buf[1];
-	id = u32(buf.substr(2,4));
-	unk1 = buf[6];
-	unk2 = buf[7];
+	this->type = buf[1];
+	this->id = u32(buf.substr(2,4));
+	this->unk1 = buf[6];
+	this->unk2 = buf[7];
 }
 
 void CG_AttackPacket::log(){
-	cout << "[SEND] Attack packet of type " << (int)type << " to id " << id << ". Unks: " << int(unk1) << ", " << int(unk2) << endl;
+	cout << "[SEND] Attack packet of type " << (int)this->type << " to id " << this->id << ". Unks: " << int(this->unk1) << ", " << int(this->unk2) << endl;
 }
 
 string CG_AttackPacket::get_buf(){
 	string buf;
-	buf += header;
-	buf += type;
-	buf += p32(id);
-	buf += unk1;
-	buf += unk2;
+	buf += this->header;
+	buf += this->type;
+	buf += p32(this->id);
+	buf += this->unk1;
+	buf += this->unk2;
 	buf += '\x00';
 	return buf;
 }
 
-// CG_ItemUse
+// [ CG_ItemUse ]
 CG_ItemUse::CG_ItemUse(byte item_pos){
 	this->item_pos = item_pos;
 }
 
 CG_ItemUse::CG_ItemUse(const std::string& buf){
-	item_pos = buf[2];
+	this->item_pos = buf[2];
 }
 
 string CG_ItemUse::get_buf(){
 	string buf;
-	buf += header;
+	buf += this->header;
 	buf += '\x01'; // seems to be always 1?
-	buf += item_pos;
+	buf += this->item_pos;
 	buf += '\x00'; // padding?
 	buf += '\x00';
 	return buf;
 }
 
 void CG_ItemUse::log(){
-	cout << "[SEND] Using item " << (int)item_pos << endl;
+	cout << "[SEND] Using item " << (int)this->item_pos << endl;
 }
 
-// CG_ItemDrop
+// [ CG_ItemDrop ]
 CG_ItemDrop::CG_ItemDrop(byte item_pos, byte item_amount){
-	is_dropping_item = true;
+	this->is_dropping_item = true;
 	this->item_pos = item_pos;
 	this->item_amount = item_amount;
-	yang_amount = 0;
+	this->yang_amount = 0;
 }
 
 CG_ItemDrop::CG_ItemDrop(int yang_amount){
-	is_dropping_item = false;
-	item_pos = 0;
-	item_amount = 0;
+	this->is_dropping_item = false;
+	this->item_pos = 0;
+	this->item_amount = 0;
 	this->yang_amount = yang_amount;
 }
 
 CG_ItemDrop::CG_ItemDrop(const string& buf){
-	is_dropping_item = (bool)buf[1];
-	item_pos = buf[2];
-	yang_amount = u32(buf.substr(4, 4));
-	item_amount = buf[8];
+	this->is_dropping_item = (bool)buf[1];
+	this->item_pos = buf[2];
+	this->yang_amount = u32(buf.substr(4, 4));
+	this->item_amount = buf[8];
 	if (buf[3] != 0)
 		cout << "CG_ItemDrop strange packet: " << string_to_hex(buf) << endl;
-	if (!is_dropping_item && (item_pos != 0 || item_pos != 0))
+	if (!this->is_dropping_item && (this->item_pos != 0 || this->item_pos != 0))
 		cout << "CG_ItemDrop strange packet2: " << string_to_hex(buf) << endl;
 }
 
 string CG_ItemDrop::get_buf(){
 	string buf;
-	buf += header;
-	buf += (byte)is_dropping_item;
-	buf += item_pos;
+	buf += this->header;
+	buf += (byte)this->is_dropping_item;
+	buf += this->item_pos;
 	buf += '\x00'; // ?
-	buf += p32(yang_amount);
-	buf += item_amount;
+	buf += p32(this->yang_amount);
+	buf += this->item_amount;
 	buf += '\x00';
 	return buf;
 }
 
 void CG_ItemDrop::log(){
-	if (is_dropping_item)
-		cout << "[SEND] Dropping item " << (int)item_pos << ", amount " << (int)item_amount << endl;
+	if (this->is_dropping_item)
+		cout << "[SEND] Dropping item " << (int)this->item_pos << ", amount " << (int)this->item_amount << endl;
 	else
-		cout << "[SEND] Dropping yang, amount " << yang_amount << endl;
+		cout << "[SEND] Dropping yang, amount " << this->yang_amount << endl;
 }

@@ -98,6 +98,6 @@ void print_err(string msg){
 }
 
 bool ingame(){
-	//cuando se mete en el juego eso se pone a 0xca
-	return ( *(byte*)((DWORD)addr::ChatObject + 0x54) == 0xca );
+	// When we are inside the game, this becomes 0xCA
+	return ( *(byte*)((DWORD)addr::ChatObject + 0x54) == 0xCA );
 }

@@ -18,7 +18,7 @@ public:
 	}
 
 	// for finding a signature/pattern in memory of another process
-	DWORD FindPattern(const char *module, const char *pattern, const char *mask, int ocurrence)
+	void* FindPattern(const char *module, const char *pattern, const char *mask, int ocurrence)
 	{
 		int ocurrences_left = ocurrence;
 		MODULEINFO mInfo = GetModuleInfo(module);
@@ -35,17 +35,17 @@ public:
 			if (found)
 			{
 				if (ocurrences_left == 1){
-					return base + i;
+					return (void*)(base + i);
 				} else {
 					ocurrences_left--;
 				}
 			}
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
-	DWORD FindPattern(const char *module, const char *pattern, const char *mask) {
+	void* FindPattern(const char *module, const char *pattern, const char *mask) {
 		return FindPattern(module, pattern, mask, 1);
 	}
 };

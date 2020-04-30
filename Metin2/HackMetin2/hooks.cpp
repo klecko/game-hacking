@@ -22,7 +22,7 @@ pAppendChat_t OriginalAppendChat;
 
 const char process[] = "metin2client.exe";
 
-// Patterns of functions for sigscanning
+// Function patterns for sigscanning
 namespace pattern {
 	const char MySend[]= "\x56\x57\x8B\xF1\xE8\x00\x00\x00\x00\x8B\xF8\x85\xFF\x7E\x4A\x8B\xCE\xE8\x00\x00\x00\x00\x84\xC0";
 	const char MyRecv[] = "\x56\x8B\xF1\x57\x8B\x56\x28\x85\xD2\x7E\x27\x8B\x46\x24\x2B\xC2\x85\xC0\x7E\x11";
@@ -31,7 +31,7 @@ namespace pattern {
 	const char AppendChat[] = "\x55\x8B\xEC\x83\xEC\x20\x89\x4D\xFC\xE8\x00\x00\x00\x00\x89\x45\xEC\x83\x7D\xEC\x00\x75\x12\x68\x00\x00\x00\x00\xE8\x00\x00\x00\x00";
 }
 
-// Mask of patterns for sigscanning
+// Patterns masks for sigscanning
 namespace mask {
 	const char MySend[] = "xxxxx????xxxxxxxxx????xx";
 	const char MyRecv[] = "xxxxxxxxxxxxxxxxxxxx";
@@ -62,9 +62,9 @@ void* read_pointer_list(vector<DWORD> offsets){
 	offsets.pop_back(); // Don't access last offset
 
 	DWORD result = addr::Base;
-	for (DWORD offset : offsets){
+	for (DWORD offset : offsets)
 		result = *(DWORD*)(result + offset);
-	}
+
 	return (void*)(result + last_offset);
 }
 
@@ -83,26 +83,19 @@ void get_objects_addresses(){
 	}
 
 	cout << "PlayerObject found at " << (DWORD)addr::PlayerObject << endl;
-
+	cout << endl;
 }
 
 void sigscan() {
 	cout << "Sigscanning..." << endl;
 	SigScan scanner;
 	addr::Base = (DWORD)GetModuleHandle(NULL);
-	addr::MySend = (void*)scanner.FindPattern(process, pattern::MySend, mask::MySend);
-	addr::MyRecv = (void*)scanner.FindPattern(process, pattern::MyRecv, mask::MyRecv);
-	addr::Chat = (void*)scanner.FindPattern(process, pattern::Chat, mask::Chat);
-	addr::GetTime = (void*)scanner.FindPattern(process, pattern::GetTime, mask::GetTime);
-	addr::AppendChat = (void*)scanner.FindPattern(process, pattern::AppendChat, mask::AppendChat);
+	addr::MySend = scanner.FindPattern(process, pattern::MySend, mask::MySend);
+	addr::MyRecv = scanner.FindPattern(process, pattern::MyRecv, mask::MyRecv);
+	addr::Chat = scanner.FindPattern(process, pattern::Chat, mask::Chat);
+	addr::GetTime = scanner.FindPattern(process, pattern::GetTime, mask::GetTime);
+	addr::AppendChat = scanner.FindPattern(process, pattern::AppendChat, mask::AppendChat);
 	addr::ChatObject = read_pointer_list(pointer_lists::ChatObject);
-
-	cout << "MySend found at " << (DWORD)addr::MySend << endl;
-	cout << "MyRecv found at " << (DWORD)addr::MyRecv << endl;
-	cout << "Chat found at " << (DWORD)addr::Chat << endl;
-	cout << "GetTime found at " << (DWORD)addr::GetTime << endl;
-	cout << "RecvChat found at " << (DWORD)addr::AppendChat << endl;
-	cout << "ChatObject found at " << (DWORD)addr::ChatObject << endl;
 
 	// Function assignation
 	OriginalMySend = (pMySend_t)addr::MySend;
@@ -110,10 +103,18 @@ void sigscan() {
 	OriginalChat = (pChat_t)addr::Chat;
 	OriginalGetTime = (pGetTime_t)addr::GetTime;
 	OriginalAppendChat = (pAppendChat_t)addr::AppendChat;
+
+	cout << "MySend found at " << (DWORD)addr::MySend << endl;
+	cout << "MyRecv found at " << (DWORD)addr::MyRecv << endl;
+	cout << "Chat found at " << (DWORD)addr::Chat << endl;
+	cout << "GetTime found at " << (DWORD)addr::GetTime << endl;
+	cout << "RecvChat found at " << (DWORD)addr::AppendChat << endl;
+	cout << "ChatObject found at " << (DWORD)addr::ChatObject << endl;
+	cout << endl;
 }
 
 void detours() {
-	cout << endl << "Doing detours..." << endl;
+	cout << "Doing detours..." << endl;
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
 	DetourAttach(&addr::MySend, HookMySend);
@@ -125,33 +126,35 @@ void detours() {
 	OriginalMySend = (pMySend_t)addr::MySend;
 	OriginalMyRecv = (pMyRecv_t)addr::MyRecv;
 	OriginalChat = (pChat_t)addr::Chat;
-	cout << "MySend found at " << (DWORD)addr::MySend << endl;
-	cout << "MyRecv found at " << (DWORD)addr::MyRecv << endl;
-	cout << "Chat found at " << (DWORD)addr::Chat << endl;
-	cout << "GetTime found at " << (DWORD)addr::GetTime << endl;
-	cout << "RecvChat found at " << (DWORD)addr::AppendChat << endl;
-	cout << "ChatObject found at " << (DWORD)addr::ChatObject << endl;
 
-	cout << "DONE!" << endl;
+	cout << "MySend is now at " << (DWORD)addr::MySend << endl;
+	cout << "MyRecv is now at " << (DWORD)addr::MyRecv << endl;
+	cout << "Chat is now at " << (DWORD)addr::Chat << endl;
+	cout << endl;
 }
 
 
 int __fastcall HookMySend(packet_struct *_this) {
+	int ret;
 	string buf(_this->buf_send, _this->buf_send_len);
 	string hex_buf = string_to_hex(buf);
 
-	Packet* ppacket = parse_packet_send(buf);
-	ppacket->log();
-	ppacket->on_hook();
-
+	// Get that f***ing packet_struct
 	if (ingame() && !ready_to_send) {
 		std_pkt_struct = *_this;
 		cout << "Packet copied! We can already send packets." << endl;
 		ready_to_send = true;
 	}
 
+	Packet* ppacket = parse_packet_send(buf);
+	ppacket->log();
+
+	// If on_hook, attach the packet to the packet_struct and send it.
+	// Else, continue execution and send with no changes.
+	ret = (ppacket->on_hook() ? ppacket->send(_this) : OriginalMySend(_this));
+
 	delete ppacket;
-	return OriginalMySend(_this);
+	return ret;
 }
 
 int __fastcall HookMyRecv(packet_struct *_this){
