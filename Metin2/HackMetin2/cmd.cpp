@@ -77,7 +77,7 @@ void Command::run(string _cmd){
 
 	} else if (cmd[0] == "set_wallhack"){
 		if (check_n_args(1, cmd))
-			set_wallhack((bool)cmd[1][0]);
+			set_wallhack((bool)stoi(cmd[1]));
 
 	} else if (cmd[0] == "shoot"){
 		// TESTING
