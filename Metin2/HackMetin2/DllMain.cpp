@@ -12,11 +12,12 @@
 [TODO]
 Teleport
 Autodmg for near targets
-Fix broken packet headers
 Description and error handling in cmd
 Investigar unks de attack, parecen variar dependiendo de la clase
 Add player struct for changing things easily
-Divide cmd in functions
+Try to reduce dependencies?
+Update docs
+Maybe set on_hook as a pointer to func so it can be somewhere else?
 
 Packets attacking with a bow a metin whose id was: 191193 (0x02ead9)
 seems like there are two packets?

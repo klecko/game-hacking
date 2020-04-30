@@ -5,6 +5,7 @@
 #include "packet.h"
 #include "utils.h"
 #include "hooks.h"
+#include "cmd.h"
 
 using namespace std;
 
@@ -52,7 +53,7 @@ Packet::Packet(const string& buf){
 	this->buf = buf;
 }
 
-void Packet::print(){
+void Packet::log(){
 	// Print unknown packets
 	string hex_buf = string_to_hex(get_buf());
 	cout << "UKNOWN PACKET:" << hex_buf << endl;
@@ -79,7 +80,7 @@ int Packet::send(packet_struct* pkt_struct){
 	// Use the given pkt_struct. Just attach to it and call OriginalMySend
 	attach_to_pkt_struct(pkt_struct);
 	cout << "Sent packet: " << string_to_hex(string(pkt_struct->buf_send, pkt_struct->buf_send_len)) << endl;
-	this->print();
+	this->log();
 	return OriginalMySend(pkt_struct);
 }
 
@@ -135,7 +136,7 @@ void CG_MovePacket::set_type_str() {
 	}
 }
 
-void CG_MovePacket::print(){
+void CG_MovePacket::log(){
 	cout << "[SEND] Move packet of type " << type_str << " and subtype " << (int)subtype << ", to (" << x << ", " << y << ") and direction " << (unsigned int)direction << ". Time: " << time << endl;
 }
 
@@ -179,7 +180,7 @@ void GC_MovePacket::set_type_str() {
 	}
 }
 
-void GC_MovePacket::print() {
+void GC_MovePacket::log() {
 	//cout << "[RECV] Move packet of id " << id << ", type " << type_str << " and subtype " << (int)subtype << ", to " << x << ", " << y << " and direction " << (unsigned int)direction << ". Time: " << time << ". Duration: " << duration << endlx;
 }
 
@@ -217,7 +218,7 @@ CG_ChatPacket::CG_ChatPacket(const string& buf){
 	msg = string(buf, 4, length);
 }
 
-void CG_ChatPacket::print(){
+void CG_ChatPacket::log(){
 	cout << "[SEND] CHAT PACKET OF TYPE " << (int)type << ": " << msg << endl;
 }
 
@@ -238,8 +239,12 @@ CG_TargetPacket::CG_TargetPacket(const string& buf){
 	id = u32(buf.substr(1,4));
 }
 
-void CG_TargetPacket::print(){
+void CG_TargetPacket::log(){
 	cout << "[SEND] TARGET PACKET, ID: " << id << endl;
+}
+
+void CG_TargetPacket::on_hook(){
+	Command::set_id_attack(get_id());
 }
 
 string CG_TargetPacket::get_buf(){
@@ -266,7 +271,7 @@ CG_AttackPacket::CG_AttackPacket(const string& buf){
 	unk2 = buf[7];
 }
 
-void CG_AttackPacket::print(){
+void CG_AttackPacket::log(){
 	cout << "[SEND] Attack packet of type " << (int)type << " to id " << id << ". Unks: " << int(unk1) << ", " << int(unk2) << endl;
 }
 
@@ -300,7 +305,7 @@ string CG_ItemUse::get_buf(){
 	return buf;
 }
 
-void CG_ItemUse::print(){
+void CG_ItemUse::log(){
 	cout << "[SEND] Using item " << (int)item_pos << endl;
 }
 
@@ -342,7 +347,7 @@ string CG_ItemDrop::get_buf(){
 	return buf;
 }
 
-void CG_ItemDrop::print(){
+void CG_ItemDrop::log(){
 	if (is_dropping_item)
 		cout << "[SEND] Dropping item " << (int)item_pos << ", amount " << (int)item_amount << endl;
 	else

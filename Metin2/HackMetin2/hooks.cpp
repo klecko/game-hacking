@@ -69,7 +69,7 @@ void* read_pointer_list(vector<DWORD> offsets){
 }
 
 void get_objects_addresses(){
-	// Unfortunately we can't get the packet_struct here, because we need id
+	// Unfortunately we can't get the packet_struct here, because we need it
 	// with its state when sending a packet
 	while (!ingame())
 		Sleep(1000);
@@ -141,7 +141,8 @@ int __fastcall HookMySend(packet_struct *_this) {
 	string hex_buf = string_to_hex(buf);
 
 	Packet* ppacket = parse_packet_send(buf);
-	ppacket->print();
+	ppacket->log();
+	ppacket->on_hook();
 
 	if (ingame() && !ready_to_send) {
 		std_pkt_struct = *_this;
@@ -149,13 +150,7 @@ int __fastcall HookMySend(packet_struct *_this) {
 		ready_to_send = true;
 	}
 
-	if (ppacket->get_header() == HEADER_CG_TARGET){
-		ID_ATTACK = ((CG_TargetPacket*)ppacket)->get_id();
-		print("New ID selected: " + to_string(ID_ATTACK));
-	}
-
 	delete ppacket;
-	
 	return OriginalMySend(_this);
 }
 
@@ -169,6 +164,8 @@ int __fastcall HookMyRecv(packet_struct *_this){
 
 	Packet* ppacket = parse_packet_recv(buf);
 	//ppacket->print();
+	ppacket->on_hook();
+
 	delete ppacket;
 
 	// cout << "recv bytes: " << len << endl;
@@ -188,7 +185,7 @@ int __fastcall HookChat(packet_struct *_this, int edx, const char* input, char p
 		OriginalAppendChat(addr::ChatObject, 0, replace_all(input, "||", "|").c_str());
 		return 1;
 	} else if (input[0] == '@'){
-		command(input);
+		Command::run(input+1);
 		return 1;
 	}
 	return OriginalChat(_this, replace_all(input, "||", "|").c_str(), param2);

@@ -93,11 +93,12 @@ public:
 	// Builds the packet given the buffer
 	Packet(const std::string& buf);
 
-	const byte get_header() const { return header; };
-
 	// Prints a description of the packet
-	virtual void print();
+	virtual void log();
 	
+	// Called when the packet is sent or received in the hook function
+	virtual void on_hook() {};
+
 	// Sends the packet to the server
 	int send();
 	int send(packet_struct* pkt_struct);
@@ -121,7 +122,7 @@ public:
 	CG_MovePacket() {};
 	CG_MovePacket(byte type, byte subtype, byte direction, int x, int y, int time);
 	CG_MovePacket(const std::string& buf);
-	void print();
+	void log();
 };
 
 
@@ -145,7 +146,7 @@ private:
 public:
 	GC_MovePacket() {};
 	GC_MovePacket(const std::string& buf);
-	void print();
+	void log();
 };
 
 
@@ -166,7 +167,7 @@ public:
 	const std::string& get_msg() { return msg; }
 	void set_msg(const std::string& msg) { this->msg = msg; }
 
-	void print();
+	void log();
 };
 
 
@@ -182,7 +183,8 @@ public:
 	CG_TargetPacket() {};
 	CG_TargetPacket(const std::string& buf);
 	int get_id() { return id; }
-	void print();
+	void on_hook();
+	void log();
 };
 
 
@@ -200,7 +202,7 @@ public:
 	CG_AttackPacket() {};
 	CG_AttackPacket(byte type, int id, byte unk1, byte unk2);
 	CG_AttackPacket(const std::string& buf);
-	void print();
+	void log();
 };
 
 class CG_ItemUse : public Packet {
@@ -226,6 +228,7 @@ private:
 	int yang_amount;
 
 	std::string get_buf();
+
 public:
 	CG_ItemDrop() {};
 	CG_ItemDrop(byte item_pos, byte item_amount);
