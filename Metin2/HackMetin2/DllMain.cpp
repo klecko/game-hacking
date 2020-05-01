@@ -12,8 +12,6 @@
 [TODO]
 Teleport
 Autodmg for near targets
-Description and error handling in cmd
-Investigar unks de attack, parecen variar dependiendo de la clase
 Add player struct for changing things easily
 Try to reduce dependencies?
 Set color tags in chat: [hex_color]text[/]

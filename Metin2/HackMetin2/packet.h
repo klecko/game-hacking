@@ -189,14 +189,15 @@ private:
 	static const byte header = HEADER_CG_ATTACK;
 	byte type;
 	int id;
-	byte unk1;
-	byte unk2;
+	byte b1;
+	byte b2;
 
 	std::string get_buf();
 
 public:
 	CG_AttackPacket() {};
-	CG_AttackPacket(byte type, int id, byte unk1, byte unk2);
+	CG_AttackPacket(byte type, int id);
+	CG_AttackPacket(byte type, int id, byte b1, byte b2);
 	CG_AttackPacket(const std::string& buf);
 	void log();
 };

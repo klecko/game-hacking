@@ -63,7 +63,7 @@ uint Command::get_id_attack(){
 
 void Command::attack(){
 	if (instance->id_attack){
-		CG_AttackPacket p(0, instance->id_attack, 0x0b, 0xcc);
+		CG_AttackPacket p(0, instance->id_attack);
 		p.send();
 	} else print_err("There's no target.");
 }

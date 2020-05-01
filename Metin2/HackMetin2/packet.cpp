@@ -256,22 +256,29 @@ string CG_TargetPacket::get_buf(){
 
 
 // [ CG_ATTACKPACKET ]
-CG_AttackPacket::CG_AttackPacket(byte type, int id, byte unk1, byte unk2) {
+CG_AttackPacket::CG_AttackPacket(byte type, int id){
 	this->type = type;
 	this->id = id;
-	this->unk1 = unk1;
-	this->unk2 = unk2;
+	this->b1 = OriginalGetAttackByte();
+	this->b2 = OriginalGetAttackByte();
+}
+
+CG_AttackPacket::CG_AttackPacket(byte type, int id, byte b1, byte b2) {
+	this->type = type;
+	this->id = id;
+	this->b1 = b1;
+	this->b2 = b2;
 }
 
 CG_AttackPacket::CG_AttackPacket(const string& buf){
 	this->type = buf[1];
 	this->id = u32(buf.substr(2,4));
-	this->unk1 = buf[6];
-	this->unk2 = buf[7];
+	this->b1 = buf[6];
+	this->b2 = buf[7];
 }
 
 void CG_AttackPacket::log(){
-	cout << "[SEND] Attack packet of type " << (int)this->type << " to id " << this->id << ". Unks: " << int(this->unk1) << ", " << int(this->unk2) << endl;
+	cout << "[SEND] Attack packet of type " << (int)this->type << " to id " << this->id << ". Bytes: " << int(this->b1) << ", " << int(this->b2) << endl;
 }
 
 string CG_AttackPacket::get_buf(){
@@ -279,8 +286,8 @@ string CG_AttackPacket::get_buf(){
 	buf += this->header;
 	buf += this->type;
 	buf += p32(this->id);
-	buf += this->unk1;
-	buf += this->unk2;
+	buf += this->b1;
+	buf += this->b2;
 	buf += '\x00';
 	return buf;
 }

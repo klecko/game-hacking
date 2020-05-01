@@ -51,12 +51,14 @@ typedef int(__thiscall *pMyRecv_t)(packet_struct *_this);
 typedef int(__thiscall *pChat_t)(packet_struct *_this, const char* input, char param_2);
 typedef int(*pGetTime_t)();
 typedef void(__thiscall *pAppendChat_t)(void* _this, int type, const char *msg);
+typedef byte(*pGetAttackByte_t)();
 
 extern pMySend_t OriginalMySend;
 extern pMyRecv_t OriginalMyRecv;
 extern pChat_t OriginalChat;
 extern pGetTime_t OriginalGetTime;       //not hooking
 extern pAppendChat_t OriginalAppendChat; //not hooking
+extern pGetAttackByte_t OriginalGetAttackByte; //not hooking
 
 // We don't really need them here, could be in the .cpp
 int __fastcall HookMySend(packet_struct *_this);

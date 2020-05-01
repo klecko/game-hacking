@@ -19,6 +19,7 @@ pMyRecv_t OriginalMyRecv;
 pChat_t OriginalChat;
 pGetTime_t OriginalGetTime;
 pAppendChat_t OriginalAppendChat;
+pGetAttackByte_t OriginalGetAttackByte;
 
 const char process[] = "metin2client.exe";
 
@@ -29,6 +30,7 @@ namespace pattern {
 	const char Chat[] = "\x55\x8B\xEC\x83\xEC\x0C\x89\x4D\xFC\x8B\x45\x08\x50\xE8\x00\x00\x00\x00\x83\xC4\x04\x85\xC0";
 	const char GetTime[] = "\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x2B\x0D\x00\x00\x00\x00\x03\xC1\xC3";
 	const char AppendChat[] = "\x55\x8B\xEC\x83\xEC\x20\x89\x4D\xFC\xE8\x00\x00\x00\x00\x89\x45\xEC\x83\x7D\xEC\x00\x75\x12\x68\x00\x00\x00\x00\xE8\x00\x00\x00\x00";
+	const char GetAttackByte[] = "\x55\x8B\xEC\x51\x0F\xB6\x05\x74\x06\xBA\x00";
 }
 
 // Patterns masks for sigscanning
@@ -38,6 +40,7 @@ namespace mask {
 	const char Chat[] = "xxxxxxxxxxxxxx????xxxxx";
 	const char GetTime[] = "xx????x????xx????xx????xxx";
 	const char AppendChat[] = "xxxxxxxxxx????xxxxxxxxxx????x????";
+	const char GetAttackByte[] = "xxxxxxxxxxx";
 }
 
 namespace addr {
@@ -47,6 +50,7 @@ namespace addr {
 	void* Chat;
 	void* GetTime;
 	void* AppendChat;
+	void* GetAttackByte;
 	void* ChatObject;
 	void* PlayerObject;
 }
@@ -95,6 +99,7 @@ void sigscan() {
 	addr::Chat = scanner.FindPattern(process, pattern::Chat, mask::Chat);
 	addr::GetTime = scanner.FindPattern(process, pattern::GetTime, mask::GetTime);
 	addr::AppendChat = scanner.FindPattern(process, pattern::AppendChat, mask::AppendChat);
+	addr::GetAttackByte = scanner.FindPattern(process, pattern::GetAttackByte, mask::GetAttackByte);
 	addr::ChatObject = read_pointer_list(pointer_lists::ChatObject);
 
 	// Function assignation
@@ -103,12 +108,14 @@ void sigscan() {
 	OriginalChat = (pChat_t)addr::Chat;
 	OriginalGetTime = (pGetTime_t)addr::GetTime;
 	OriginalAppendChat = (pAppendChat_t)addr::AppendChat;
+	OriginalGetAttackByte = (pGetAttackByte_t)addr::GetAttackByte;
 
 	cout << "MySend found at " << (DWORD)addr::MySend << endl;
 	cout << "MyRecv found at " << (DWORD)addr::MyRecv << endl;
 	cout << "Chat found at " << (DWORD)addr::Chat << endl;
 	cout << "GetTime found at " << (DWORD)addr::GetTime << endl;
-	cout << "RecvChat found at " << (DWORD)addr::AppendChat << endl;
+	cout << "AppendChat found at " << (DWORD)addr::AppendChat << endl;
+	cout << "GetAttackByte found at " << (DWORD)addr::GetAttackByte << endl;
 	cout << "ChatObject found at " << (DWORD)addr::ChatObject << endl;
 	cout << endl;
 }
