@@ -4,6 +4,7 @@
 #include <iostream> //quitar
 #include <sstream>
 #include <iomanip>
+//#include <bits/std++.h>
 
 #include "hooks.h"
 
@@ -13,6 +14,7 @@ typedef unsigned char byte;
 
 const string COLOR_HACK = "00ffff";
 const string COLOR_ERR = "ff0000";
+const string COLOR_HELP = "ffff00";
 
 string string_to_hex(const string& input){
 	static const char* const lut = "0123456789ABCDEF";
@@ -95,6 +97,12 @@ void print(string msg) {
 
 void print_err(string msg){
 	print(color(COLOR_ERR) + "[ERROR] " + color() + msg);
+}
+
+void print_help(string key, string msg){
+	string key_up(key);
+	for (auto& c : key_up) c = toupper(c);
+	print(color(COLOR_HELP) + "[" + key_up + "] " + color() + msg);
 }
 
 bool ingame(){

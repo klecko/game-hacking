@@ -11,23 +11,26 @@
  * corresponding function.
  *
  * Current commands:
- *     - send hexbuf: sends the packet built with the hextbuf
+ *     - send hexbuf: sends the packet built with the hexbuf
  *     - move type x y: moves to coords (x, y)
  *     - attack: attacks the chosen target
  *     - msg type message: sends the message as selected type
- *     - set_wallhack 0/1: enables or disables the wallhack
+ *     - wallhack 0/1: enables or disables the wallhack
 */
 
 #pragma once
 
 #include <string>
 #include <vector>
+#include <map>
 
 typedef unsigned char byte;
 typedef unsigned int uint;
 
 class Command {
 private:
+	static const std::map<std::string, std::string> help_msgs;
+
 	// Forbidden methods
 	Command(){};
 	Command(const Command&){};
@@ -38,9 +41,9 @@ private:
 	uint id_attack;
 
 	// Instance
-	static Command* instance;
+	static Command* const instance;
 
-	static bool check_n_args(int n, std::vector<std::string> cmd);
+	static bool check_n_args(uint n, std::vector<std::string> cmd);
 
 public:
 	// Class methods (interface)
@@ -51,6 +54,8 @@ public:
 	static uint get_id_attack();
 
 	// Hacks
+	static void help();
+	static void help(std::string what);
 	static void send(std::string hexbuf);
 	static void move(byte type, int x, int y);
 	static void attack();

@@ -10,16 +10,39 @@
 
 using namespace std;
 
-Command* Command::instance = new Command();
+const map<string, string> Command::help_msgs = {
+	{"send", "Sends the packet built with the hexbuf. Syntax: send hexbuf"},
+	{"move", "Moves to coords (x, y). Syntax: move type x y"},
+	{"attack", "Attacks the target. Syntax: attack"},
+	{"msg", "Send a message. Syntax: msg type message"},
+	{"wallhack", "Enables or disables the wallhack. Syntax: wallhack 0/1"}
+};
+Command* const Command::instance = new Command();
 
-bool Command::check_n_args(int n, vector<string> cmd){
-	if (cmd.size() == n+1)
+bool Command::check_n_args(uint n, vector<string> cmd){
+	if (cmd.size() >= n+1)
 		return true;
 	print_err("Wrong arguments!");
 	return false;
 }
 
-void Command::send(std::string hexbuf){
+void Command::help(){
+	string msg = "Available help pages: ";
+	for (auto p : help_msgs)
+		msg += p.first + ", ";
+	msg.erase(msg.end()-2, msg.end()); // remove last ", "
+	print(msg);
+}
+
+void Command::help(string what){
+	auto it = help_msgs.find(what);
+	if (it != help_msgs.end())
+		print_help(it->first, it->second);
+	else
+		print_err("No help page for " + what);
+}
+
+void Command::send(string hexbuf){
 	Packet p(hex_to_string(hexbuf));
 	p.send();
 }
@@ -45,7 +68,7 @@ void Command::attack(){
 	} else print_err("There's no target.");
 }
 
-void Command::msg(byte type, std::string msg){
+void Command::msg(byte type, string msg){
 	CG_ChatPacket p(type, msg);
 	p.send();
 }
@@ -58,8 +81,16 @@ void Command::set_wallhack(bool activated){
 
 void Command::run(string _cmd){
 	vector<string> cmd = split(_cmd, ' ');
+	if (!check_n_args(0, cmd)) // Avoid empty commands
+		return;
 
-	if (cmd[0] == "move") {
+	if (cmd[0] == "help") {
+		if (cmd.size() == 1) // 0 args
+			help();
+		else if (check_n_args(1, cmd)) // 1 arg
+			help(cmd[1]);
+
+	} else if (cmd[0] == "move") {
 		if (check_n_args(3, cmd))
 			move(stoi(cmd[1]), stoi(cmd[2]), stoi(cmd[3]));
 
@@ -75,7 +106,7 @@ void Command::run(string _cmd){
 		if (check_n_args(1, cmd))
 			send(cmd[1]);
 
-	} else if (cmd[0] == "set_wallhack"){
+	} else if (cmd[0] == "wallhack"){
 		if (check_n_args(1, cmd))
 			set_wallhack((bool)stoi(cmd[1]));
 

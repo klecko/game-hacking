@@ -37,7 +37,7 @@
  *		CG_ItemUse p(inventory_pos);
  *		p.send();
  *
- * Example of modifying every sent chat packet UNTESTED:
+ * Example of modifying every sent chat packet:
  *		bool CG_ChatPacket::on_hook(){
  *			this->msg = "CENSORED";
  *			return true;

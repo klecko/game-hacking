@@ -36,5 +36,8 @@ void print(std::string msg);
 // Prints an error message to the Metin2 chat
 void print_err(std::string msg);
 
+// Prints an help message to the Metin2 chat
+void print_help(std::string key, std::string msg);
+
 // Checks if we are already logged in. TODO: check what happens when relogging
 bool ingame();
