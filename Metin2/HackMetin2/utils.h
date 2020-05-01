@@ -15,8 +15,8 @@ std::string hex_to_string(const std::string& input);
 #define p16(n)   p(2, n)
 #define p32(n)   p(4, n)
 #define p64(n)   p(8, n)
-int u(int bytes, const std::string& buffer);
-std::string p(int bytes, int n);
+int u(uint bytes, const std::string& buffer);
+std::string p(uint bytes, int n);
 
 // Split a string using a delimiter
 std::vector<std::string> split(const std::string& s, char delimiter);

@@ -38,7 +38,7 @@
  *		p.send();
  *
  * Example of modifying every sent chat packet:
- *		bool CG_ChatPacket::on_hook(){
+ *		bool CG_Chat::on_hook(){
  *			this->msg = "CENSORED";
  *			return true;
  *		}
@@ -100,7 +100,7 @@ public:
 	int send(packet_struct* pkt_struct);
 };
 
-class CG_MovePacket : public Packet{
+class CG_Move : public Packet{
 private:
 	static const byte header = HEADER_CG_MOVE;
 	byte type;
@@ -108,46 +108,20 @@ private:
 	byte direction;
 	int x;
 	int y;
-	int time;
+	uint time;
 	std::string type_str;
 
 	std::string get_buf();
 	void set_type_str();
 	
 public:
-	CG_MovePacket() {};
-	CG_MovePacket(byte type, byte subtype, byte direction, int x, int y, int time);
-	CG_MovePacket(const std::string& buf);
+	CG_Move() {};
+	CG_Move(byte type, byte subtype, byte direction, int x, int y, uint time);
+	CG_Move(const std::string& buf);
 	void log();
 };
 
-
-
-class GC_MovePacket : public Packet {
-private:
-	static const byte header = HEADER_GC_MOVE;
-	byte type;
-	byte subtype;
-	byte direction;
-	int id;
-	int x;
-	int y;
-	int time;
-	int duration;
-	std::string type_str;
-
-	std::string get_buf();
-	void set_type_str();
-
-public:
-	GC_MovePacket() {};
-	GC_MovePacket(const std::string& buf);
-	void log();
-};
-
-
-
-class CG_ChatPacket : public Packet {
+class CG_Chat : public Packet {
 private:
 	static const byte header = HEADER_CG_CHAT;
 	std::string msg;
@@ -156,9 +130,9 @@ private:
 	std::string get_buf();
 
 public:
-	CG_ChatPacket() {};
-	CG_ChatPacket(const std::string& buf);
-	CG_ChatPacket(byte type, const std::string& msg);
+	CG_Chat() {};
+	CG_Chat(const std::string& buf);
+	CG_Chat(byte type, const std::string& msg);
 	
 	const std::string& get_msg() { return msg; }
 	void set_msg(const std::string& msg) { this->msg = msg; }
@@ -168,37 +142,37 @@ public:
 
 
 
-class CG_TargetPacket : public Packet {
+class CG_Target : public Packet {
 private:
 	static const byte header = HEADER_CG_TARGET;
-	int id;
+	uint id;
 
 	std::string get_buf();
 
 public:
-	CG_TargetPacket() {};
-	CG_TargetPacket(const std::string& buf);
-	int get_id() { return id; }
+	CG_Target() {};
+	CG_Target(const std::string& buf);
+	uint get_id() { return id; }
 	bool on_hook();
 	void log();
 };
 
 
-class CG_AttackPacket : public Packet {
+class CG_Attack : public Packet {
 private:
 	static const byte header = HEADER_CG_ATTACK;
 	byte type;
-	int id;
+	uint id;
 	byte b1;
 	byte b2;
 
 	std::string get_buf();
 
 public:
-	CG_AttackPacket() {};
-	CG_AttackPacket(byte type, int id);
-	CG_AttackPacket(byte type, int id, byte b1, byte b2);
-	CG_AttackPacket(const std::string& buf);
+	CG_Attack() {};
+	CG_Attack(byte type, uint id);
+	CG_Attack(byte type, uint id, byte b1, byte b2);
+	CG_Attack(const std::string& buf);
 	void log();
 };
 
@@ -222,14 +196,69 @@ private:
 	bool is_dropping_item;
 	byte item_pos;
 	byte item_amount;
-	int yang_amount;
+	uint yang_amount;
 
 	std::string get_buf();
 
 public:
 	CG_ItemDrop() {};
 	CG_ItemDrop(byte item_pos, byte item_amount);
-	CG_ItemDrop(int yang_amount);
+	CG_ItemDrop(uint yang_amount);
 	CG_ItemDrop(const std::string& buf);
 	void log();
+};
+
+
+class GC_Move : public Packet {
+private:
+	static const byte header = HEADER_GC_MOVE;
+	byte type;
+	byte subtype;
+	byte direction;
+	uint id;
+	int x;
+	int y;
+	uint time;
+	int duration;
+	std::string type_str;
+
+	std::string get_buf();
+	void set_type_str();
+
+public:
+	GC_Move() {};
+	GC_Move(const std::string& buf);
+	bool on_hook();
+	void log();
+};
+
+class GC_CharacterAdd : public Packet {
+private:
+	static const byte header = HEADER_GC_CHARACTER_ADD;
+
+public:
+	GC_CharacterAdd() {};
+	GC_CharacterAdd(const std::string& buf);
+	void log();
+};
+
+class GC_CharacterDel : public Packet {
+private:
+	static const byte header = HEADER_GC_CHARACTER_DEL;
+
+public:
+	GC_CharacterDel() {};
+	GC_CharacterDel(const std::string& buf);
+	void log();
+};
+
+class GC_Chat : public Packet {
+private:
+	static const byte header = HEADER_GC_CHAT;
+
+public:
+	GC_Chat() {};
+	GC_Chat(const std::string& buf);
+	void log();
+
 };

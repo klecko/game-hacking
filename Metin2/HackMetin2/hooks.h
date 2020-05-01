@@ -49,7 +49,7 @@ typedef int(__thiscall *pMySend_t)(packet_struct *_this);
 typedef int(__thiscall *pMyRecv_t)(packet_struct *_this);
 typedef int(__thiscall *pMyRecv_t)(packet_struct *_this);
 typedef int(__thiscall *pChat_t)(packet_struct *_this, const char* input, char param_2);
-typedef int(*pGetTime_t)();
+typedef uint(*pGetTime_t)();
 typedef void(__thiscall *pAppendChat_t)(void* _this, int type, const char *msg);
 typedef byte(*pGetAttackByte_t)();
 

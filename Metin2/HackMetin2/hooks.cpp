@@ -30,7 +30,7 @@ namespace pattern {
 	const char Chat[] = "\x55\x8B\xEC\x83\xEC\x0C\x89\x4D\xFC\x8B\x45\x08\x50\xE8\x00\x00\x00\x00\x83\xC4\x04\x85\xC0";
 	const char GetTime[] = "\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x2B\x0D\x00\x00\x00\x00\x03\xC1\xC3";
 	const char AppendChat[] = "\x55\x8B\xEC\x83\xEC\x20\x89\x4D\xFC\xE8\x00\x00\x00\x00\x89\x45\xEC\x83\x7D\xEC\x00\x75\x12\x68\x00\x00\x00\x00\xE8\x00\x00\x00\x00";
-	const char GetAttackByte[] = "\x55\x8B\xEC\x51\x0F\xB6\x05\x74\x06\xBA\x00";
+	const char GetAttackByte[] = "\x55\x8B\xEC\x51\x0F\xB6\x05\x74\x06\x91\x00\x0F\xB6\x88\x6C\x06\x91\x00\x0F\xB6\x15\x74\x06\x91\x00\x0F\xB6\x82\xB8\x17\x8E\x00\x33\xC8\x88\x4D\xFF";
 }
 
 // Patterns masks for sigscanning
@@ -40,7 +40,7 @@ namespace mask {
 	const char Chat[] = "xxxxxxxxxxxxxx????xxxxx";
 	const char GetTime[] = "xx????x????xx????xx????xxx";
 	const char AppendChat[] = "xxxxxxxxxx????xxxxxxxxxx????x????";
-	const char GetAttackByte[] = "xxxxxxxxxxx";
+	const char GetAttackByte[] = "xxxxxxx????xxx????xxx????xxx????xxxxx";
 }
 
 namespace addr {
@@ -168,20 +168,16 @@ int __fastcall HookMyRecv(packet_struct *_this){
 	uint offset = _this->buf_recv_offset;
 	uint field28 = _this->field_0x28;
 	int ret = OriginalMyRecv(_this);
-	uint len = _this->buf_recv_offset + offset - field28;
+	// recv_offset - 0x28 + len_recv = recv_offset2 --> len_recv = recv_offset2 + 0x28 - recv_offset
+	uint len = _this->buf_recv_offset - offset + field28;
 
 	string buf = string(_this->buf_recv, len);
 
 	Packet* ppacket = parse_packet_recv(buf);
-	//ppacket->print();
+	//ppacket->log();
 	ppacket->on_hook();
 
 	delete ppacket;
-
-	// cout << "recv bytes: " << len << endl;
-	// cout << string_to_hex(buf) << endl;
-
-	// recv_offset - 0x28 + len_recv = recv_offset2 --> len_recv = recv_offset2 + 0x28 - recv_offset
 	return ret;
 }
 

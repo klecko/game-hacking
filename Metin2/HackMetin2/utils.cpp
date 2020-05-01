@@ -41,16 +41,16 @@ string hex_to_string(const string& input){
 	return output;
 }
 
-int u(int bytes, const string& buffer){
+int u(uint bytes, const string& buffer){
 	int result = 0;
-	for (int i = 0; i < bytes; i++)
+	for (uint i = 0; i < bytes; i++)
 		result |= (((byte)buffer[i]) << i*8);
 	return result;
 }
 
-string p(int bytes, int n){
+string p(uint bytes, int n){
 	string result;
-	for (int i = 0; i < bytes; i++)
+	for (uint i = 0; i < bytes; i++)
 		result += (byte)((n >> (i*8)) & 0xFF);
 	return result;
 }

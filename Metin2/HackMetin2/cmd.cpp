@@ -19,11 +19,34 @@ const map<string, string> Command::help_msgs = {
 };
 Command* const Command::instance = new Command();
 
+void Command::set_id_attack(uint id_attack) {
+	instance->id_attack = id_attack;
+	print("New ID selected: " + to_string(id_attack));
+}
+
+uint Command::get_id_attack() {
+	return instance->id_attack;
+}
+
+void Command::update_enemy(uint id, int x, int y){
+	if (instance->enemies.count(id)){
+		instance->enemies[id].x = x;
+		instance->enemies[id].y = y;
+	} else {
+		Enemy en = {x, y};
+		instance->enemies[id] = en;
+	}
+
+	/*cout << endl << "{";
+	for (auto it : instance->enemies){
+		cout << it.first << ": (" << it.second.x << ", " << it.second.y << "), ";
+	}
+	cout << "}" << endl << endl;*/
+}
+
+
 bool Command::check_n_args(uint n, vector<string> cmd){
-	if (cmd.size() >= n+1)
-		return true;
-	print_err("Wrong arguments!");
-	return false;
+	return cmd.size() >= n+1;
 }
 
 void Command::help(){
@@ -48,56 +71,69 @@ void Command::send(string hexbuf){
 }
 
 void Command::move(byte type, int x, int y){
-	CG_MovePacket p(type, 0, 0xc, x, y, 0);
+	CG_Move p(type, 0, 0xc, x, y, 0);
 	p.send();
 }
 
-void Command::set_id_attack(int id_attack){
-	instance->id_attack = id_attack;
-	print("New ID selected: " + to_string(id_attack));
-}
-
-uint Command::get_id_attack(){
-	return instance->id_attack;
-}
-
-void Command::attack(){
+void Command::attack_target(){
 	if (instance->id_attack){
-		CG_AttackPacket p(0, instance->id_attack);
+		CG_Attack p(0, instance->id_attack);
 		p.send();
 	} else print_err("There's no target.");
 }
 
+void Command::_attack(){
+	while (instance->attacking){
+		for (auto it : instance->enemies){
+			cout << "[BOT] Attacking " << it.first << endl;
+			CG_Attack p(0, it.first);
+			p.send();
+			Sleep(50);
+		}
+	}
+}
+
+void Command::attack(bool enabled){
+	instance->attacking = enabled;
+	if (enabled)
+		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)_attack, 0, 0, 0);
+}
+
 void Command::msg(byte type, string msg){
-	CG_ChatPacket p(type, msg);
+	CG_Chat p(type, msg);
 	p.send();
 }
 
-void Command::set_wallhack(bool activated){
+void Command::set_wallhack(bool enabled){
 	// TODO: player structure PL0X
-	*(byte*)((DWORD)addr::PlayerObject + 0x490) = (byte)activated;
-	print(string("Set wallhack ") + (activated ? "on." : "off."));
+	*(byte*)((DWORD)addr::PlayerObject + 0x490) = (byte)enabled;
+	print(string("Set wallhack ") + (enabled ? "on." : "off."));
 }
 
 void Command::run(string _cmd){
+	bool check = true;
 	vector<string> cmd = split(_cmd, ' ');
 	if (!check_n_args(0, cmd)) // Avoid empty commands
 		return;
 
 	if (cmd[0] == "help") {
-		if (cmd.size() == 1) // 0 args
+		if (check_n_args(0, cmd)) // 0 args
 			help();
-		else if (check_n_args(1, cmd)) // 1 arg
+		else if (check = check_n_args(1, cmd)) // 1 arg
 			help(cmd[1]);
 
 	} else if (cmd[0] == "move") {
-		if (check_n_args(3, cmd))
+		if (check = check_n_args(3, cmd))
 			move(stoi(cmd[1]), stoi(cmd[2]), stoi(cmd[3]));
 
-	} else if (cmd[0] == "attack") {
-		if (check_n_args(0, cmd))
-			attack();
+	} else if (cmd[0] == "attack_target") {
+		if (check = check_n_args(0, cmd))
+			attack_target();
 
+	} else if (cmd[0] == "attack") { // 1 arg that must be start or stop
+		if ((check = check_n_args(1, cmd)) && (check = (cmd[1] == "start" || cmd[1] == "stop")))
+			attack(cmd[1] == "start" ? true : false);
+	
 	} else if (cmd[0] == "msg"){
 		if (check_n_args(2, cmd))
 			msg(stoi(cmd[1]), cmd[2]);
@@ -123,4 +159,6 @@ void Command::run(string _cmd){
 
 	} else print_err("Unknown command");
 
+	if (!check)
+		print_err("Bad arguments!");
 }

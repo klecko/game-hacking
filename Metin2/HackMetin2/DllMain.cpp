@@ -16,6 +16,9 @@ Add player struct for changing things easily
 Try to reduce dependencies?
 Set color tags in chat: [hex_color]text[/]
 Maybe set on_hook as a pointer to func so it can be somewhere else?
+Think about two packets in the same buf
+
+Autodmg for near targets doesn't seem to work well. REVISAR
 
 Packets attacking with a bow a metin whose id was: 191193 (0x02ead9)
 seems like there are two packets?

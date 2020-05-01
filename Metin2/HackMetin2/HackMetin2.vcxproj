@@ -126,6 +126,7 @@
   <ItemGroup>
     <ClInclude Include="cmd.h" />
     <ClInclude Include="detours.h" />
+    <ClInclude Include="enemy.h" />
     <ClInclude Include="hooks.h" />
     <ClInclude Include="packet.h" />
     <ClInclude Include="packet_headers.h" />
