@@ -29,6 +29,8 @@ Packet* parse_packet_send(const string& buf) {
 			return new CG_ItemUse(buf);
 		case HEADER_CG_ITEM_DROP2:
 			return new CG_ItemDrop(buf);
+		case HEADER_CG_WHISPER:
+			return new CG_Whisper(buf);
 		default:
 			return new Packet(buf);
 	}
@@ -324,7 +326,38 @@ void CG_ItemDrop::log(){
 		cout << "[SEND] Dropping yang, amount " << this->yang_amount << endl;
 }
 
+// [ CG_Whisper ]
+CG_Whisper::CG_Whisper(const string& username, const string& msg){
+	this->username = username;
+	this->msg = msg;
+}
 
+CG_Whisper::CG_Whisper(const string& buf){
+	// 13 2B00 4461726B536173696E000000000000000000000000000000 05 414142424343444445454646474700 A7
+	cout << string_to_hex(buf) << endl;
+	ushort packet_len = u16(buf.substr(1, 2));
+	this->username = buf.substr(3, this->username_len);
+	this->username = this->username.substr(0, this->username.find('\x00')); // remove nullbytes
+	this->msg = buf.substr(3+this->username_len+1, buf.size()-(3+this->username_len+1)-2);
+	cout << string_to_hex(this->get_buf()) << endl;
+}
+
+string CG_Whisper::get_buf(){
+	// packet_len does not include last byte
+	ushort packet_len = 3 + this->username_len + 1 + this->msg.size() + 1;
+	string buf;
+	buf += this->header;
+	buf += p16(packet_len);
+	buf += this->username + string(this->username_len - this->username.size(), '\x00');
+	buf += '\x05'; // ??
+	buf += this->msg + '\x00';
+	buf += '\x00';
+	return buf;
+}
+
+void CG_Whisper::log(){
+	cout << "[SEND] Whispering " << this->username << ": " << this->msg << endl;
+}
 
 // [ GC_Move ]
 GC_Move::GC_Move(const string& buf) {

@@ -187,12 +187,12 @@ int __fastcall HookChat(packet_struct *_this, int edx, const char* input, char p
 	// colors. Example: |cFFFFFF00|H|hhola. 
 	cout << "CHAT: " << input << endl;
 
-	if (input[0] == '$'){
-		OriginalAppendChat(addr::ChatObject, 0, replace_all(input, "||", "|").c_str());
+	if (input[0] == '$'){ // for testing and not sending the msg
+		OriginalAppendChat(addr::ChatObject, 0, Command::process_msg(input).c_str());
 		return 1;
-	} else if (input[0] == '@'){
+	} else if (input[0] == '@'){ // commands
 		Command::run(input+1);
 		return 1;
 	}
-	return OriginalChat(_this, replace_all(input, "||", "|").c_str(), param2);
+	return OriginalChat(_this, Command::process_msg(input).c_str(), param2);
 }

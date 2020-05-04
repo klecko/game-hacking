@@ -47,7 +47,7 @@ private:
 	// Instance
 	static Command* const instance;
 
-	static bool check_n_args(uint n, std::vector<std::string> cmd);
+	static bool check_n_args(uint n, const std::vector<std::string>& cmd);
 	static void _attack();
 
 public:
@@ -61,12 +61,13 @@ public:
 
 	// Hacks
 	static void help();
-	static void help(std::string what);
-	static void send(std::string hexbuf);
+	static void help(const std::string& what);
+	static void send(const std::string& hexbuf);
 	static void move(byte type, int x, int y);
 	static void attack_target();
 	static void attack(bool enabled);
-	static void msg(byte type, std::string msg);
+	static std::string process_msg(std::string msg);
+	static void msg(byte type, const std::string& msg);
 	static void set_wallhack(bool enabled);
-	static void run(std::string cmd);
+	static void run(const std::string& cmd);
 };

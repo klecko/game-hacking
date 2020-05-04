@@ -14,7 +14,6 @@ Teleport
 Autodmg for near targets
 Add player struct for changing things easily
 Try to reduce dependencies?
-Set color tags in chat: [hex_color]text[/]
 Maybe set on_hook as a pointer to func so it can be somewhere else?
 Think about two packets in the same buf
 

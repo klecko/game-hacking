@@ -45,7 +45,7 @@ void Command::update_enemy(uint id, int x, int y){
 }
 
 
-bool Command::check_n_args(uint n, vector<string> cmd){
+bool Command::check_n_args(uint n, const vector<string>& cmd){
 	return cmd.size() >= n+1;
 }
 
@@ -57,7 +57,7 @@ void Command::help(){
 	print(msg);
 }
 
-void Command::help(string what){
+void Command::help(const string& what){
 	auto it = help_msgs.find(what);
 	if (it != help_msgs.end())
 		print_help(it->first, it->second);
@@ -65,7 +65,7 @@ void Command::help(string what){
 		print_err("No help page for " + what);
 }
 
-void Command::send(string hexbuf){
+void Command::send(const string& hexbuf){
 	Packet p(hex_to_string(hexbuf));
 	p.send();
 }
@@ -99,7 +99,27 @@ void Command::attack(bool enabled){
 		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)_attack, 0, 0, 0);
 }
 
-void Command::msg(byte type, string msg){
+string Command::process_msg(string msg){
+	size_t i1 = msg.find("["), i2, len;
+	string replace = "";
+	while (i1 != msg.npos){
+		i2 = msg.find("]");
+		if (i2 == msg.npos)
+			break;
+		len = i2-i1-1;
+		if (len == 0)
+			replace = color();
+		else if (len == 6)
+			replace = color(msg.substr(i1+1,len));
+		else
+			print_err("Error processing color tag in message");
+		msg.replace(i1, len+2, replace);
+		i1 = msg.find("[", i1+1);
+	}
+	return msg;
+}
+
+void Command::msg(byte type, const string& msg){
 	CG_Chat p(type, msg);
 	p.send();
 }
@@ -110,7 +130,7 @@ void Command::set_wallhack(bool enabled){
 	print(string("Set wallhack ") + (enabled ? "on." : "off."));
 }
 
-void Command::run(string _cmd){
+void Command::run(const string& _cmd){
 	bool check = true;
 	vector<string> cmd = split(_cmd, ' ');
 	if (!check_n_args(0, cmd)) // Avoid empty commands

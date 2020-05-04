@@ -208,6 +208,22 @@ public:
 	void log();
 };
 
+class CG_Whisper : public Packet {
+private:
+	static const byte header = HEADER_CG_WHISPER;
+	static const int username_len = 24;
+	std::string username;
+	std::string msg;
+
+	std::string get_buf();
+
+public:
+	CG_Whisper() {};
+	CG_Whisper(const std::string& username, const std::string& msg);
+	CG_Whisper(const std::string& buf);
+	void log();
+};
+
 
 class GC_Move : public Packet {
 private:
