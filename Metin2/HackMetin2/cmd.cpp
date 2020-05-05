@@ -1,12 +1,14 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <WinSock2.h>
 
 #include "cmd.h"
 #include "utils.h"
 #include "hooks.h"
 #include "packet.h"
 
+#pragma comment(lib, "Ws2_32.lib")
 
 using namespace std;
 
@@ -150,6 +152,9 @@ void Command::disconnect(const string& username){
 	}
 }
 
+int send2(SOCKET s, const char* buf, int len, int flags){
+	return send(s, buf, len, flags);
+}
 
 void Command::run(const string& _cmd){
 	bool check = true;
@@ -204,6 +209,14 @@ void Command::run(const string& _cmd){
 
 	} else if (cmd[0] == "dc_stop"){
 		instance->disconnecting = false;
+
+	} else if (cmd[0] == "test"){
+		CG_Chat p(0, "hola");
+		string buf = p.get_buf();
+		char* buf_c = new char[buf.size()];
+		memcpy(buf_c, buf.c_str(), buf.size());
+		OriginalEncryptPacket(addr::CryptObject, buf_c, buf_c, buf.size());
+		cout << "Result of sending: " << send2(pkt_struct->socket, buf_c, buf.size(), 0);
 
 	} else print_err("Unknown command: " + cmd[0]);
 

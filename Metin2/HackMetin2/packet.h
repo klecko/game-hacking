@@ -127,9 +127,10 @@ private:
 	std::string msg;
 	byte type;
 
-	std::string get_buf();
+	
 
 public:
+	std::string get_buf();
 	CG_Chat() {};
 	CG_Chat(const std::string& buf);
 	CG_Chat(byte type, const std::string& msg);

@@ -15,6 +15,7 @@ namespace addr {
 	extern void* AppendChat;
 	extern void* ChatObject;
 	extern void* PlayerObject;
+	extern void* CryptObject;
 }
 
 // Reads the pointer list, being the first pointer addr::base + offsets[0]
@@ -52,6 +53,7 @@ typedef int(__thiscall *pChat_t)(packet_struct *_this, const char* input, char p
 typedef uint(*pGetTime_t)();
 typedef void(__thiscall *pAppendChat_t)(void* _this, int type, const char *msg);
 typedef byte(*pGetAttackByte_t)();
+typedef void(__thiscall *pEncryptPacket_t)(void* _this, char* src, char* src2, uint len);
 
 extern pMySend_t OriginalMySend;
 extern pMyRecv_t OriginalMyRecv;
@@ -59,11 +61,12 @@ extern pChat_t OriginalChat;
 extern pGetTime_t OriginalGetTime;       //not hooking
 extern pAppendChat_t OriginalAppendChat; //not hooking
 extern pGetAttackByte_t OriginalGetAttackByte; //not hooking
+extern pEncryptPacket_t OriginalEncryptPacket; //not hooking
 
 // We don't really need them here, could be in the .cpp
 int __fastcall HookMySend(packet_struct *_this);
 int __fastcall HookMyRecv(packet_struct *_this);
 int __fastcall HookChat(packet_struct *_this, int edx, const char* input, char param2);
 
-
+extern packet_struct* pkt_struct;
 #endif

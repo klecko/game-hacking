@@ -20,6 +20,9 @@ pChat_t OriginalChat;
 pGetTime_t OriginalGetTime;
 pAppendChat_t OriginalAppendChat;
 pGetAttackByte_t OriginalGetAttackByte;
+pEncryptPacket_t OriginalEncryptPacket;
+
+packet_struct* pkt_struct;
 
 const char process[] = "metin2client.exe";
 
@@ -53,11 +56,13 @@ namespace addr {
 	void* GetAttackByte;
 	void* ChatObject;
 	void* PlayerObject;
+	void* PacketStruct;
+	void* CryptObject;
 }
 
 namespace pointer_lists {
 	vector<DWORD> ChatObject = {0x2fe560, 4};
-	vector<DWORD> PacketStruct = {0x2fe438};
+	vector<DWORD> PacketStruct = {0x2fe438, 0};
 	vector<DWORD> PlayerObject = {0x2fc158, 0xc, 0x1d4};
 }
 
@@ -79,6 +84,7 @@ void get_objects_addresses(){
 		Sleep(1000);
 
 	cout << "Getting objects addresses..." << hex << endl;
+	addr::PacketStruct = read_pointer_list(pointer_lists::PacketStruct);
 	addr::PlayerObject = read_pointer_list(pointer_lists::PlayerObject);
 	while (addr::PlayerObject == (void*)0x1d4){
 		cout << "[ERROR] Getting Player Object pointer. Trying again.." << endl;
@@ -86,7 +92,13 @@ void get_objects_addresses(){
 		addr::PlayerObject = read_pointer_list(pointer_lists::PlayerObject);
 	}
 
+	pkt_struct = (packet_struct*)(addr::PacketStruct);
+	addr::CryptObject = (char*)pkt_struct->pointer_crypto + 4;
+	OriginalEncryptPacket = *(pEncryptPacket_t*)( (*(DWORD*)(addr::CryptObject))+0x1C );
+
+	cout << "Packet struct found at " << (DWORD)addr::PacketStruct << endl;
 	cout << "PlayerObject found at " << (DWORD)addr::PlayerObject << endl;
+	cout << "OriginalEncryptPacket found at " << (DWORD)OriginalEncryptPacket << endl;
 	cout << endl;
 }
 
