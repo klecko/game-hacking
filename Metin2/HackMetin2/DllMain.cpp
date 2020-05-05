@@ -16,8 +16,8 @@ Add player struct for changing things easily
 Try to reduce dependencies?
 Maybe set on_hook as a pointer to func so it can be somewhere else?
 Think about two packets in the same buf
-
-Autodmg for near targets doesn't seem to work well. REVISAR
+Think about changing sending packet procedure: call encrypt_packet and send and fuck off packet_struct
+FIX autodmg and disconnect
 
 Packets attacking with a bow a metin whose id was: 191193 (0x02ead9)
 seems like there are two packets?

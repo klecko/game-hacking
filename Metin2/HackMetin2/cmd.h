@@ -41,14 +41,17 @@ private:
 	// Instance attributes
 	// Chosen target, changed when CG_Target is sent
 	uint id_attack;
+	std::string username_dc;
 	std::map<uint, Enemy> enemies;
 	bool attacking;
+	bool disconnecting;
 
 	// Instance
 	static Command* const instance;
 
 	static bool check_n_args(uint n, const std::vector<std::string>& cmd);
 	static void _attack();
+	static void _disconnect();
 
 public:
 	// Class methods (interface)
@@ -69,5 +72,6 @@ public:
 	static std::string process_msg(std::string msg);
 	static void msg(byte type, const std::string& msg);
 	static void set_wallhack(bool enabled);
+	static void disconnect(const std::string& username);
 	static void run(const std::string& cmd);
 };
