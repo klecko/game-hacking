@@ -32,6 +32,9 @@ typedef unsigned int uint;
 class Command {
 private:
 	static const std::map<std::string, std::string> help_msgs;
+	static const int DISCONNECT_DEFAULT_PACKETS = 20;
+	static const int DISCONNECT_PACKET_LEN = 500;
+	static const byte DISCONNECT_BYTE = '\x18';
 
 	// Forbidden methods
 	Command(){};
@@ -45,6 +48,7 @@ private:
 	std::map<uint, Enemy> enemies;
 	bool attacking;
 	bool disconnecting;
+	int disconnect_packets;
 
 	// Instance
 	static Command* const instance;
@@ -72,6 +76,6 @@ public:
 	static std::string process_msg(std::string msg);
 	static void msg(byte type, const std::string& msg);
 	static void set_wallhack(bool enabled);
-	static void disconnect(const std::string& username);
+	static void disconnect(const std::string& username, int n_packets=DISCONNECT_DEFAULT_PACKETS);
 	static void run(const std::string& cmd);
 };

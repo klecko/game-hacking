@@ -75,9 +75,6 @@ private:
 	std::string buf;
 
 protected:
-	// Builds the buffer that will be sent to the server
-	virtual std::string get_buf();
-
 	// Copies the content of the packet into the send_buf of a pkt_struct
 	void attach_to_pkt_struct(packet_struct* pkt_struct);
 
@@ -86,6 +83,9 @@ public:
 
 	// Builds the packet given the buffer
 	Packet(const std::string& buf);
+
+	// Builds the buffer that will be sent to the server
+	virtual std::string get_buf();
 
 	// Prints a description of the packet
 	virtual void log();
@@ -111,13 +111,13 @@ private:
 	uint time;
 	std::string type_str;
 
-	std::string get_buf();
 	void set_type_str();
 	
 public:
 	CG_Move() {};
 	CG_Move(byte type, byte subtype, byte direction, int x, int y, uint time);
 	CG_Move(const std::string& buf);
+	std::string get_buf();
 	void log();
 };
 
@@ -127,17 +127,15 @@ private:
 	std::string msg;
 	byte type;
 
-	std::string get_buf();
-
 public:
 	CG_Chat() {};
 	CG_Chat(const std::string& buf);
 	CG_Chat(byte type, const std::string& msg);
-	
+	std::string get_buf();
+	void log();
+
 	const std::string& get_msg() { return msg; }
 	void set_msg(const std::string& msg) { this->msg = msg; }
-
-	void log();
 };
 
 
@@ -147,14 +145,15 @@ private:
 	static const byte header = HEADER_CG_TARGET;
 	uint id;
 
-	std::string get_buf();
 
 public:
 	CG_Target() {};
 	CG_Target(const std::string& buf);
-	uint get_id() { return id; }
-	bool on_hook();
+	std::string get_buf();
 	void log();
+	bool on_hook();
+
+	uint get_id() { return id; }
 };
 
 
@@ -166,13 +165,12 @@ private:
 	byte b1;
 	byte b2;
 
-	std::string get_buf();
-
 public:
 	CG_Attack() {};
 	CG_Attack(byte type, uint id);
 	CG_Attack(byte type, uint id, byte b1, byte b2);
 	CG_Attack(const std::string& buf);
+	std::string get_buf();
 	void log();
 };
 
@@ -181,12 +179,11 @@ private:
 	static const byte header = HEADER_CG_ITEM_USE;
 	byte item_pos;
 
-	std::string get_buf();
-
 public:
 	CG_ItemUse() {};
 	CG_ItemUse(byte item_pos);
 	CG_ItemUse(const std::string& buf);
+	std::string get_buf();
 	void log();
 };
 
@@ -198,13 +195,12 @@ private:
 	byte item_amount;
 	uint yang_amount;
 
-	std::string get_buf();
-
 public:
 	CG_ItemDrop() {};
 	CG_ItemDrop(byte item_pos, byte item_amount);
 	CG_ItemDrop(uint yang_amount);
 	CG_ItemDrop(const std::string& buf);
+	std::string get_buf();
 	void log();
 };
 
@@ -215,12 +211,11 @@ private:
 	std::string username;
 	std::string msg;
 
-	std::string get_buf();
-
 public:
 	CG_Whisper() {};
 	CG_Whisper(const std::string& username, const std::string& msg);
 	CG_Whisper(const std::string& buf);
+	std::string get_buf();
 	void log();
 };
 
@@ -238,14 +233,14 @@ private:
 	int duration;
 	std::string type_str;
 
-	std::string get_buf();
 	void set_type_str();
 
 public:
 	GC_Move() {};
 	GC_Move(const std::string& buf);
-	bool on_hook();
+	std::string get_buf();
 	void log();
+	bool on_hook();
 };
 
 class GC_CharacterAdd : public Packet {
@@ -277,4 +272,17 @@ public:
 	GC_Chat(const std::string& buf);
 	void log();
 
+};
+
+class GC_Whisper : public Packet {
+private:
+	static const byte header = HEADER_GC_WHISPER;
+	static const int username_len = 24;
+	std::string username;
+	std::string msg;
+
+public:
+	GC_Whisper() {};
+	GC_Whisper(const std::string& buf);
+	void log();
 };

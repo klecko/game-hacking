@@ -41,16 +41,14 @@ Packet* parse_packet_recv(const string& buf) {
 	switch (header) {
 		case HEADER_GC_CHARACTER_ADD:
 			return new GC_CharacterAdd(buf);
-			break;
 		case HEADER_GC_CHARACTER_DEL:
 			return new GC_CharacterDel(buf);
-			break;
 		case HEADER_GC_MOVE:
 			return new GC_Move(buf);
-			break;
 		case HEADER_GC_CHAT:
 			return new GC_Chat(buf);
-			break;
+		case HEADER_GC_WHISPER:
+			return new GC_Whisper(buf);
 		default:
 			return new Packet(buf);
 	}
@@ -88,8 +86,8 @@ void Packet::attach_to_pkt_struct(packet_struct* pkt_struct){
 int Packet::send(packet_struct* pkt_struct){
 	// Use the given pkt_struct. Just attach to it and call OriginalMySend
 	this->attach_to_pkt_struct(pkt_struct);
-	cout << "Sent packet: " << string_to_hex(string(pkt_struct->buf_send, pkt_struct->buf_send_len)) << endl;
-	this->log();
+	cout << "Sent packet: " << endl;// << string_to_hex(string(pkt_struct->buf_send, pkt_struct->buf_send_len)) << endl;
+	//this->log();
 	return OriginalMySend(pkt_struct);
 }
 
@@ -437,16 +435,34 @@ void GC_CharacterDel::log() {
 
 // [ GC_Chat ]
 /*
-04 3700060000000003 7C6346466666303030307C487C685B4C696F6E5D7C6346464137464644347C487C682045626F6F6B73203A203332
-04 5900060000000003 7C6346463030383046467C487C685B4C696F6E5D7C6346464137464644347C487C6820536F756C74616B6572203A2056454E444F20454D504520475545525245524F2059204E494E4A41204D504D5050
-04 2300050000000003 5365745465616D4F66666C696E65205B474D5D706572693230300421000500000000035365745465616D4F66666C696E65205B544D5D766163696F0421000500000000035365745465616D4F66666C696E65205B474D5D766163696F0421000500000000035365745465616D4F66666C696E65205B474D5D766163696F0421000500000000035365745465616D4F66666C696E65205B544D5D766163696F
+04 3700 060000000003 7C6346466666303030307C487C685B4C696F6E5D7C6346464137464644347C487C682045626F6F6B73203A203332
+04 5900 060000000003 7C6346463030383046467C487C685B4C696F6E5D7C6346464137464644347C487C6820536F756C74616B6572203A2056454E444F20454D504520475545525245524F2059204E494E4A41204D504D5050
+04 2300 050000000003 5365745465616D4F66666C696E65205B474D5D706572693230300421000500000000035365745465616D4F66666C696E65205B544D5D766163696F0421000500000000035365745465616D4F66666C696E65205B474D5D766163696F0421000500000000035365745465616D4F66666C696E65205B474D5D766163696F0421000500000000035365745465616D4F66666C696E65205B544D5D766163696F
 */
 GC_Chat::GC_Chat(const string& buf)
 	: Packet(buf) {
-
+	// TODO
 }
 
 void GC_Chat::log() {
 	string hex_buf = string_to_hex(this->get_buf());
 	cout << "[RECV] Chat packet: " << hex_buf << endl;
+}
+
+// [ GC_Whisper ]
+/*
+222100004B6C65636B610000000000000000000000000000000000000041414141
+223000004B6C65636B6100000000000000000000000000000000000000746F6E746F20656C20717565206C6F206C6561
+*/
+GC_Whisper::GC_Whisper(const string& buf){
+	string hex_buf = string_to_hex(buf);
+	ushort packet_len = u16(buf.substr(1, 2));
+	this->username = buf.substr(4, this->username_len);
+	this->username = this->username.substr(0, this->username.find('\x00')); // remove nullbytes
+	this->msg = buf.substr(3 + 1 + this->username_len + 1, buf.size() - (3 + 1 + this->username_len + 1));
+	cout << "[RECV] WHISPER: " << this->username << ": " << this->msg << endl;
+}
+
+void GC_Whisper::log(){
+
 }
