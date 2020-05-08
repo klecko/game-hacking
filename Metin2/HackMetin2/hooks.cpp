@@ -172,8 +172,12 @@ int __fastcall HookMyRecv(packet_struct *_this){
 	uint len = _this->buf_recv_offset - offset + field28;
 
 	string buf = string(_this->buf_recv, len);
+	string hex_buf = string_to_hex(buf);
 
 	Packet* ppacket = parse_packet_recv(buf);
+	vector<int> allow = { HEADER_GC_WARP };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
+	if (find(allow.begin(), allow.end(), ppacket->get_buf()[0]) != allow.end())
+		cout << "[RECV] " << hex_buf << endl;
 	//ppacket->log();
 	ppacket->on_hook();
 

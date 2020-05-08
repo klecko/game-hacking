@@ -49,6 +49,16 @@ Packet* parse_packet_recv(const string& buf) {
 			return new GC_Chat(buf);
 		case HEADER_GC_WHISPER:
 			return new GC_Whisper(buf);
+		case HEADER_GC_ITEM_UPDATE:
+			return new GC_ItemUpdate(buf);
+		case HEADER_GC_ITEM_DEL:
+			return new GC_ItemDel(buf);
+		case HEADER_GC_ITEM_SET:
+			return new GC_ItemSet(buf);
+		case HEADER_GC_ITEM_USE:
+			return new GC_ItemUse(buf);
+		case HEADER_GC_ITEM_DROP:
+			return new GC_ItemDrop(buf);
 		default:
 			return new Packet(buf);
 	}
@@ -343,6 +353,7 @@ CG_Whisper::CG_Whisper(const string& buf){
 string CG_Whisper::get_buf(){
 	// packet_len does not include last byte
 	ushort packet_len = 3 + this->username_len + 1 + this->msg.size() + 1;
+	//packet_len++;
 	string buf;
 	buf += this->header;
 	buf += p16(packet_len);
@@ -367,6 +378,18 @@ GC_Move::GC_Move(const string& buf) {
 	this->y = u32(buf.substr(12, 4));
 	this->time = u32(buf.substr(16, 4));
 	this->duration = u32(buf.substr(20, 4));
+	this->set_type_str();
+}
+
+GC_Move::GC_Move(byte type, byte subtype, byte direction, uint id, int x, int y, int duration){
+	this->type = type;
+	this->subtype = subtype;
+	this->direction = direction;
+	this->id = id;
+	this->x = x;
+	this->y = y;
+	this->time = OriginalGetTime();
+	this->duration = duration;
 	this->set_type_str();
 }
 
@@ -438,31 +461,120 @@ void GC_CharacterDel::log() {
 04 3700 060000000003 7C6346466666303030307C487C685B4C696F6E5D7C6346464137464644347C487C682045626F6F6B73203A203332
 04 5900 060000000003 7C6346463030383046467C487C685B4C696F6E5D7C6346464137464644347C487C6820536F756C74616B6572203A2056454E444F20454D504520475545525245524F2059204E494E4A41204D504D5050
 04 2300 050000000003 5365745465616D4F66666C696E65205B474D5D706572693230300421000500000000035365745465616D4F66666C696E65205B544D5D766163696F0421000500000000035365745465616D4F66666C696E65205B474D5D766163696F0421000500000000035365745465616D4F66666C696E65205B474D5D766163696F0421000500000000035365745465616D4F66666C696E65205B544D5D766163696F
+04 0101 060101010103 6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161
 */
-GC_Chat::GC_Chat(const string& buf)
-	: Packet(buf) {
-	// TODO
+GC_Chat::GC_Chat(const string& buf) {
+	ushort packet_len = u16(buf.substr(1, 2));
+	this->type = buf[3];
+	this->msg = buf.substr(9, packet_len-1-2-6);
+}
+
+GC_Chat::GC_Chat(byte type, const string& msg){
+	this->type = type;
+	this->msg = msg;
+}
+
+string GC_Chat::get_buf(){
+	ushort packet_len = this->msg.length() + 9;
+	string buf;
+	buf += this->header;
+	buf += p16(packet_len);
+	buf += this->type;
+	buf += p32(0) + '\x03'; // ?
+	buf += this->msg;
+	return buf;
 }
 
 void GC_Chat::log() {
-	string hex_buf = string_to_hex(this->get_buf());
-	cout << "[RECV] Chat packet: " << hex_buf << endl;
+	cout << "[RECV] Chat packet of type " << (int)this->type << ": " << this->msg << endl;
 }
 
 // [ GC_Whisper ]
 /*
-222100004B6C65636B610000000000000000000000000000000000000041414141
-223000004B6C65636B6100000000000000000000000000000000000000746F6E746F20656C20717565206C6F206C6561
+22 2100 00 4B6C65636B6100000000000000000000000000000000000000 41414141
+22 3000 00 4B6C65636B6100000000000000000000000000000000000000 746F6E746F20656C20717565206C6F206C6561
+22 0101 05 61616161616161616161616161616161616161616161616161 61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161
 */
 GC_Whisper::GC_Whisper(const string& buf){
-	string hex_buf = string_to_hex(buf);
 	ushort packet_len = u16(buf.substr(1, 2));
+	this->type = buf[3];
 	this->username = buf.substr(4, this->username_len);
 	this->username = this->username.substr(0, this->username.find('\x00')); // remove nullbytes
 	this->msg = buf.substr(3 + 1 + this->username_len + 1, buf.size() - (3 + 1 + this->username_len + 1));
 	cout << "[RECV] WHISPER: " << this->username << ": " << this->msg << endl;
 }
 
+GC_Whisper::GC_Whisper(byte type, const std::string& username, const std::string& msg){
+	this->type = type;
+	this->username = username;
+	this->msg = msg;
+}
+
+string GC_Whisper::get_buf(){
+	ushort packet_len = 4 + this->username_len  + this->msg.length();
+	string buf;
+	buf += this->header;
+	buf += p16(packet_len);
+	buf += this->type;
+	buf += this->username + string(this->username_len - this->username.size(), '\x00');
+	buf += this->msg;
+	return buf;
+}
+
 void GC_Whisper::log(){
 
+}
+
+// [ GC_ItemUpdate ]
+GC_ItemUpdate::GC_ItemUpdate(const string& buf)
+	: Packet(buf) {
+
+}
+
+void GC_ItemUpdate::log() {
+	string hex_buf = string_to_hex(this->get_buf());
+	cout << "[RECV] GC_ItemUpdate: " << hex_buf << endl;
+}
+
+// [ GC_ItemDel ]
+GC_ItemDel::GC_ItemDel(const string& buf)
+	: Packet(buf) {
+
+}
+
+void GC_ItemDel::log() {
+	string hex_buf = string_to_hex(this->get_buf());
+	cout << "[RECV] GC_ItemDel: " << hex_buf << endl;
+}
+
+// [ GC_ItemSet ]
+GC_ItemSet::GC_ItemSet(const string& buf)
+	: Packet(buf) {
+
+}
+
+void GC_ItemSet::log() {
+	string hex_buf = string_to_hex(this->get_buf());
+	cout << "[RECV] GC_ItemSet: " << hex_buf << endl;
+}
+// [ GC_ItemUse ]
+GC_ItemUse::GC_ItemUse(const string& buf)
+	: Packet(buf) {
+
+}
+
+void GC_ItemUse::log() {
+	string hex_buf = string_to_hex(this->get_buf());
+	cout << "[RECV] GC_ItemUse: " << hex_buf << endl;
+}
+
+// [ GC_ItemDrop ]
+GC_ItemDrop::GC_ItemDrop(const string& buf)
+	: Packet(buf) {
+
+}
+
+void GC_ItemDrop::log() {
+	string hex_buf = string_to_hex(this->get_buf());
+	cout << "[RECV] GC_ItemDrop: " << hex_buf << endl;
 }

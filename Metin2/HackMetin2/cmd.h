@@ -55,6 +55,7 @@ private:
 
 	static bool check_n_args(uint n, const std::vector<std::string>& cmd);
 	static void _attack();
+	static void _packet_injection();
 	static void _disconnect();
 
 public:
@@ -77,5 +78,6 @@ public:
 	static void msg(byte type, const std::string& msg);
 	static void set_wallhack(bool enabled);
 	static void disconnect(const std::string& username, int n_packets=DISCONNECT_DEFAULT_PACKETS);
+	static void packet_injection(const std::string& username);
 	static void run(const std::string& cmd);
 };

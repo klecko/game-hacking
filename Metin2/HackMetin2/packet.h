@@ -238,6 +238,7 @@ private:
 public:
 	GC_Move() {};
 	GC_Move(const std::string& buf);
+	GC_Move(byte type, byte subtype, byte direction, uint id, int x, int y, int duration);
 	std::string get_buf();
 	void log();
 	bool on_hook();
@@ -266,23 +267,81 @@ public:
 class GC_Chat : public Packet {
 private:
 	static const byte header = HEADER_GC_CHAT;
+	std::string msg;
+	byte type;
 
 public:
 	GC_Chat() {};
 	GC_Chat(const std::string& buf);
+	GC_Chat(byte type, const std::string& msg);
+	std::string get_buf();
 	void log();
 
 };
 
 class GC_Whisper : public Packet {
+//22 0101 05 61616161616161616161616161616161616161616161616161 61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161
 private:
 	static const byte header = HEADER_GC_WHISPER;
-	static const int username_len = 24;
+	static const int username_len = 25;
+	byte type;
 	std::string username;
 	std::string msg;
 
 public:
 	GC_Whisper() {};
 	GC_Whisper(const std::string& buf);
+	GC_Whisper(byte type, const std::string& username, const std::string& msg);
+	std::string get_buf();
+	void log();
+};
+
+class GC_ItemUpdate : public Packet {
+private:
+	static const byte header = HEADER_GC_ITEM_UPDATE;
+
+public:
+	GC_ItemUpdate() {};
+	GC_ItemUpdate(const std::string& buf);
+	void log();
+};
+
+class GC_ItemDel : public Packet {
+private:
+	static const byte header = HEADER_GC_ITEM_DEL;
+
+public:
+	GC_ItemDel() {};
+	GC_ItemDel(const std::string& buf);
+	void log();
+};
+
+class GC_ItemSet : public Packet {
+private:
+	static const byte header = HEADER_GC_ITEM_SET;
+
+public:
+	GC_ItemSet() {};
+	GC_ItemSet(const std::string& buf);
+	void log();
+};
+
+class GC_ItemUse : public Packet {
+private:
+	static const byte header = HEADER_GC_ITEM_USE;
+
+public:
+	GC_ItemUse() {};
+	GC_ItemUse(const std::string& buf);
+	void log();
+};
+
+class GC_ItemDrop : public Packet {
+private:
+	static const byte header = HEADER_GC_ITEM_DROP;
+
+public:
+	GC_ItemDrop() {};
+	GC_ItemDrop(const std::string& buf);
 	void log();
 };
