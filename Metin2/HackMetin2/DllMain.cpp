@@ -10,17 +10,14 @@
 
 /*
 [TODO]
-Teleport
-Autodmg for near targets
-Add player struct for changing things easily
-Try to reduce dependencies?
-Maybe set on_hook as a pointer to func so it can be somewhere else?
-Think about two packets in the same buf
-Think about changing sending packet procedure: call encrypt_packet and send and fuck off packet_struct
-FIX autodmg and disconnect
-A veces no pilla bien el packet_struct parece. Estaria bien modificar ingame para que tardara mas, asi
-	tampoco fallaria la obtencion del player
-Revisar estructura cmd
+1. Teleport
+2. Add player struct for changing things easily
+3. Try to reduce dependencies?
+4. Think about two packets in the same buf. I need the size of every packet first
+6. Make autodmg clear the list of enemies --> need to solve 4
+7. Change name of attack hack to autodmg?
+8. MORE PACKETS
+9. Revisar estructura cmd
 
 Packets attacking with a bow a metin whose id was: 191193 (0x02ead9)
 seems like there are two packets?

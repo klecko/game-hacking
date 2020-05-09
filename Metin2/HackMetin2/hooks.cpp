@@ -140,9 +140,12 @@ void detours() {
 	cout << endl;
 }
 
+bool ingame(){
+	return read_pointer_list(pointer_lists::PlayerObject) != (void*)0x1d4;
+}
 
 int __fastcall HookMySend(packet_struct *_this) {
-	int ret;
+	int ret = 1;
 	string buf(_this->buf_send, _this->buf_send_len);
 	string hex_buf = string_to_hex(buf);
 
@@ -153,14 +156,19 @@ int __fastcall HookMySend(packet_struct *_this) {
 		ready_to_send = true;
 	}
 
-	Packet* ppacket = parse_packet_send(buf);
-	ppacket->log();
+	try {
+		Packet* ppacket = parse_packet_send(buf);
+		ppacket->log();
 
-	// If on_hook, attach the packet to the packet_struct and send it.
-	// Else, continue execution and send with no changes.
-	ret = (ppacket->on_hook() ? ppacket->send(_this) : OriginalMySend(_this));
+		// If on_hook, attach the packet to the packet_struct and send it.
+		// Else, continue execution and send with no changes.
+		ret = (ppacket->on_hook() ? ppacket->send(_this) : OriginalMySend(_this));
+		delete ppacket;
 
-	delete ppacket;
+	} catch (exception& e) {
+		cout << "[ERROR] Send hook: " << e.what() << endl;
+	}
+	
 	return ret;
 }
 
@@ -174,14 +182,19 @@ int __fastcall HookMyRecv(packet_struct *_this){
 	string buf = string(_this->buf_recv, len);
 	string hex_buf = string_to_hex(buf);
 
-	Packet* ppacket = parse_packet_recv(buf);
-	vector<int> allow = { HEADER_GC_WARP };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
-	if (find(allow.begin(), allow.end(), ppacket->get_buf()[0]) != allow.end())
-		cout << "[RECV] " << hex_buf << endl;
-	//ppacket->log();
-	ppacket->on_hook();
+	try{
+		Packet* ppacket = parse_packet_recv(buf);
+		vector<int> allow = { HEADER_GC_WARP };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
+		if (find(allow.begin(), allow.end(), ppacket->get_buf()[0]) != allow.end())
+			cout << "[RECV] " << hex_buf << endl;
+		//ppacket->log();
+		ppacket->on_hook();
 
-	delete ppacket;
+		delete ppacket;
+
+	} catch (exception& e) {
+		cout << "[ERROR] Recv hook: " << e.what() << endl;
+	}
 	return ret;
 }
 

@@ -72,11 +72,15 @@ class Packet{
 private:
 	// Generic packet can have any header
 	byte header = 0;
+
+	// Just save the buf
 	std::string buf;
 
-protected:
 	// Copies the content of the packet into the send_buf of a pkt_struct
 	void attach_to_pkt_struct(packet_struct* pkt_struct);
+
+protected:
+	static void check_size(const std::string& buf, uint size);
 
 public:
 	Packet() {};
@@ -103,6 +107,7 @@ public:
 class CG_Move : public Packet{
 private:
 	static const byte header = HEADER_CG_MOVE;
+	static const uint size = 17;
 	byte type;
 	byte subtype;
 	byte direction;
@@ -124,6 +129,7 @@ public:
 class CG_Chat : public Packet {
 private:
 	static const byte header = HEADER_CG_CHAT;
+	static const uint size = 5; // + msg
 	std::string msg;
 	byte type;
 
@@ -143,8 +149,8 @@ public:
 class CG_Target : public Packet {
 private:
 	static const byte header = HEADER_CG_TARGET;
+	static const uint size = 6;
 	uint id;
-
 
 public:
 	CG_Target() {};
@@ -160,6 +166,7 @@ public:
 class CG_Attack : public Packet {
 private:
 	static const byte header = HEADER_CG_ATTACK;
+	static const uint size = 9;
 	byte type;
 	uint id;
 	byte b1;
@@ -177,6 +184,7 @@ public:
 class CG_ItemUse : public Packet {
 private:
 	static const byte header = HEADER_CG_ITEM_USE;
+	static const uint size = 5;
 	byte item_pos;
 
 public:
@@ -190,6 +198,7 @@ public:
 class CG_ItemDrop : public Packet {
 private:
 	static const byte header = HEADER_CG_ITEM_DROP2;
+	static const uint size = 10;
 	bool is_dropping_item;
 	byte item_pos;
 	byte item_amount;
@@ -208,6 +217,7 @@ class CG_Whisper : public Packet {
 private:
 	static const byte header = HEADER_CG_WHISPER;
 	static const int username_len = 24;
+	static const uint size = 4 + username_len; // + msg
 	std::string username;
 	std::string msg;
 
@@ -223,6 +233,7 @@ public:
 class GC_Move : public Packet {
 private:
 	static const byte header = HEADER_GC_MOVE;
+	static const uint size = 24;
 	byte type;
 	byte subtype;
 	byte direction;
@@ -247,6 +258,7 @@ public:
 class GC_CharacterAdd : public Packet {
 private:
 	static const byte header = HEADER_GC_CHARACTER_ADD;
+	static const uint size = 1; // TODO
 
 public:
 	GC_CharacterAdd() {};
@@ -257,6 +269,7 @@ public:
 class GC_CharacterDel : public Packet {
 private:
 	static const byte header = HEADER_GC_CHARACTER_DEL;
+	static const uint size = 1; // TODO
 
 public:
 	GC_CharacterDel() {};
@@ -267,6 +280,7 @@ public:
 class GC_Chat : public Packet {
 private:
 	static const byte header = HEADER_GC_CHAT;
+	static const uint size = 9; // + msg
 	std::string msg;
 	byte type;
 
@@ -280,10 +294,10 @@ public:
 };
 
 class GC_Whisper : public Packet {
-//22 0101 05 61616161616161616161616161616161616161616161616161 61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161
 private:
 	static const byte header = HEADER_GC_WHISPER;
 	static const int username_len = 25;
+	static const uint size = 4 + username_len;
 	byte type;
 	std::string username;
 	std::string msg;
@@ -299,6 +313,7 @@ public:
 class GC_ItemUpdate : public Packet {
 private:
 	static const byte header = HEADER_GC_ITEM_UPDATE;
+	static const uint size = 1; // TODO
 
 public:
 	GC_ItemUpdate() {};
@@ -309,6 +324,7 @@ public:
 class GC_ItemDel : public Packet {
 private:
 	static const byte header = HEADER_GC_ITEM_DEL;
+	static const uint size = 1; // TODO
 
 public:
 	GC_ItemDel() {};
@@ -319,6 +335,7 @@ public:
 class GC_ItemSet : public Packet {
 private:
 	static const byte header = HEADER_GC_ITEM_SET;
+	static const uint size = 1; // TODO
 
 public:
 	GC_ItemSet() {};
@@ -329,6 +346,7 @@ public:
 class GC_ItemUse : public Packet {
 private:
 	static const byte header = HEADER_GC_ITEM_USE;
+	static const uint size = 1; // TODO
 
 public:
 	GC_ItemUse() {};
@@ -339,6 +357,7 @@ public:
 class GC_ItemDrop : public Packet {
 private:
 	static const byte header = HEADER_GC_ITEM_DROP;
+	static const uint size = 1; // TODO
 
 public:
 	GC_ItemDrop() {};

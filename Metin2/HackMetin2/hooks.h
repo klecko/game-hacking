@@ -30,6 +30,9 @@ void sigscan();
 // Performs detours and updates addresses of original functions
 void detours();
 
+// Checks if we are already logged in. TODO: check what happens when relogging
+bool ingame();
+
 /* Original and hook functions definitions.
  *
  * Note that original and hook functions do not use the same calling convention.

@@ -89,6 +89,13 @@ void Packet::attach_to_pkt_struct(packet_struct* pkt_struct){
 	pkt_struct->buf_send[s.length()] = '\x00';
 }
 
+void Packet::check_size(const string& buf, uint size){
+	if (buf.size() < size){
+		string msg = "Bad packet size (should be " + to_string(size) + "). Buf: " + string_to_hex(buf);
+		throw exception(msg.c_str());
+	}
+}
+
 // Anteriormente los dos métodos send creaban un nuevo pkt_struct (uno a partir del std,
 // otro a partir del argumento). Eso hacía que no se pudiera interceptar un paquete, ya que
 // no modificabamos el pkt_struct original, se interpretaba como que el send habia fallado,
@@ -128,6 +135,7 @@ CG_Move::CG_Move(byte type, byte subtype, byte direction, int x, int y, uint tim
 }
 
 CG_Move::CG_Move(const string& buf){
+	check_size(buf, this->size);
 	this->type = buf[1];
 	this->subtype = buf[2];
 	this->direction = buf[3];
@@ -185,6 +193,7 @@ CG_Chat::CG_Chat(byte type, const string& msg){
 }
 
 CG_Chat::CG_Chat(const string& buf){
+	check_size(buf, this->size);
 	uint length = u16(buf.substr(1,2)) - 5;
 	this->type = buf[3];
 	this->msg = string(buf, 4, length);
@@ -208,6 +217,7 @@ string CG_Chat::get_buf() {
 
 // [ CG_Target ]
 CG_Target::CG_Target(const string& buf){
+	check_size(buf, this->size);
 	this->id = u32(buf.substr(1,4));
 }
 
@@ -245,6 +255,7 @@ CG_Attack::CG_Attack(byte type, uint id, byte b1, byte b2) {
 }
 
 CG_Attack::CG_Attack(const string& buf){
+	check_size(buf, this->size);
 	this->type = buf[1];
 	this->id = u32(buf.substr(2,4));
 	this->b1 = buf[6];
@@ -272,6 +283,7 @@ CG_ItemUse::CG_ItemUse(byte item_pos){
 }
 
 CG_ItemUse::CG_ItemUse(const std::string& buf){
+	check_size(buf, this->size);
 	this->item_pos = buf[2];
 }
 
@@ -305,6 +317,7 @@ CG_ItemDrop::CG_ItemDrop(uint yang_amount){
 }
 
 CG_ItemDrop::CG_ItemDrop(const string& buf){
+	check_size(buf, this->size);
 	this->is_dropping_item = (bool)buf[1];
 	this->item_pos = buf[2];
 	this->yang_amount = u32(buf.substr(4, 4));
@@ -342,12 +355,11 @@ CG_Whisper::CG_Whisper(const string& username, const string& msg){
 
 CG_Whisper::CG_Whisper(const string& buf){
 	// 13 2B00 4461726B536173696E000000000000000000000000000000 05 414142424343444445454646474700 A7
-	cout << string_to_hex(buf) << endl;
+	check_size(buf, this->size);
 	ushort packet_len = u16(buf.substr(1, 2));
 	this->username = buf.substr(3, this->username_len);
 	this->username = this->username.substr(0, this->username.find('\x00')); // remove nullbytes
 	this->msg = buf.substr(3+this->username_len+1, buf.size()-(3+this->username_len+1)-2);
-	cout << string_to_hex(this->get_buf()) << endl;
 }
 
 string CG_Whisper::get_buf(){
@@ -370,6 +382,7 @@ void CG_Whisper::log(){
 
 // [ GC_Move ]
 GC_Move::GC_Move(const string& buf) {
+	check_size(buf, this->size);
 	this->type = buf[1];
 	this->subtype = buf[2];
 	this->direction = buf[3];
@@ -394,6 +407,8 @@ GC_Move::GC_Move(byte type, byte subtype, byte direction, uint id, int x, int y,
 }
 
 void GC_Move::set_type_str() {
+	// OJO: ALGUNAS VECES DA ERROR, LOS TIPO 2 NO SE QUE SON Y PARECEN
+	// TENER ESTRUCTURA Y LONGITUD DIFERENTE
 	switch (this->type) {
 	case 0:
 		this->type_str = "stop_moving";
@@ -437,7 +452,7 @@ string GC_Move::get_buf() {
 */
 GC_CharacterAdd::GC_CharacterAdd(const string& buf)
 : Packet(buf){
-	
+	check_size(buf, this->size);
 }
 
 void GC_CharacterAdd::log(){
@@ -448,7 +463,7 @@ void GC_CharacterAdd::log(){
 // [ GC_CharacterDel ]
 GC_CharacterDel::GC_CharacterDel(const string& buf)
 : Packet(buf) {
-
+	check_size(buf, this->size);
 }
 
 void GC_CharacterDel::log() {
@@ -464,6 +479,7 @@ void GC_CharacterDel::log() {
 04 0101 060101010103 6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161
 */
 GC_Chat::GC_Chat(const string& buf) {
+	check_size(buf, this->size);
 	ushort packet_len = u16(buf.substr(1, 2));
 	this->type = buf[3];
 	this->msg = buf.substr(9, packet_len-1-2-6);
@@ -480,7 +496,7 @@ string GC_Chat::get_buf(){
 	buf += this->header;
 	buf += p16(packet_len);
 	buf += this->type;
-	buf += p32(0) + '\x03'; // ?
+	buf += p32(0) + '\x03'; // KINGDOM?
 	buf += this->msg;
 	return buf;
 }
@@ -496,6 +512,7 @@ void GC_Chat::log() {
 22 0101 05 61616161616161616161616161616161616161616161616161 61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161
 */
 GC_Whisper::GC_Whisper(const string& buf){
+	check_size(buf, this->size);
 	ushort packet_len = u16(buf.substr(1, 2));
 	this->type = buf[3];
 	this->username = buf.substr(4, this->username_len);
@@ -539,7 +556,7 @@ void GC_ItemUpdate::log() {
 // [ GC_ItemDel ]
 GC_ItemDel::GC_ItemDel(const string& buf)
 	: Packet(buf) {
-
+	check_size(buf, this->size);
 }
 
 void GC_ItemDel::log() {
@@ -550,17 +567,18 @@ void GC_ItemDel::log() {
 // [ GC_ItemSet ]
 GC_ItemSet::GC_ItemSet(const string& buf)
 	: Packet(buf) {
-
+	check_size(buf, this->size);
 }
 
 void GC_ItemSet::log() {
 	string hex_buf = string_to_hex(this->get_buf());
 	cout << "[RECV] GC_ItemSet: " << hex_buf << endl;
 }
+
 // [ GC_ItemUse ]
 GC_ItemUse::GC_ItemUse(const string& buf)
 	: Packet(buf) {
-
+	check_size(buf, this->size);
 }
 
 void GC_ItemUse::log() {
@@ -571,7 +589,7 @@ void GC_ItemUse::log() {
 // [ GC_ItemDrop ]
 GC_ItemDrop::GC_ItemDrop(const string& buf)
 	: Packet(buf) {
-
+	check_size(buf, this->size);
 }
 
 void GC_ItemDrop::log() {

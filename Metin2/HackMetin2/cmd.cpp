@@ -13,9 +13,13 @@ using namespace std;
 const map<string, string> Command::help_msgs = {
 	{"send", "Sends the packet built with the hexbuf. Syntax: send hexbuf"},
 	{"move", "Moves to coords (x, y). Syntax: move type x y"},
-	{"attack", "Attacks the target. Syntax: attack"},
+	{"attack_target", "Attacks current target. Syntax: attack_target"},
+	{"attack", "Enables or disables the attack hack. It attracts and attacks every close enemy. Syntax: attack 0/1"},
 	{"msg", "Send a message. Syntax: msg type message"},
-	{"wallhack", "Enables or disables the wallhack. Syntax: wallhack 0/1"}
+	{"wallhack", "Enables or disables the wallhack. Syntax: wallhack 0/1"},
+	{"dc", "Starts trying to disconnect the player. It sends by default 20 dc packets. Syntax: dc player [packets]"},
+	{"dc_stop", "Stop strying ot disconnect the player. Syntax: dc_stop"},
+	{"inj", "Performs remote packet injection on player. Syntax: inj player"}
 };
 Command* const Command::instance = new Command();
 
@@ -88,7 +92,7 @@ void Command::_attack(){
 			cout << "[BOT] Attacking " << it.first << endl;
 			CG_Attack p(0, it.first);
 			p.send();
-			Sleep(50);
+			Sleep(10);
 		}
 	}
 }
@@ -232,10 +236,14 @@ void Command::run(const string& _cmd){
 		return;
 
 	if (cmd[0] == "help") {
-		if (check_n_args(0, cmd)) // 0 args
-			help();
-		else if (check = check_n_args(1, cmd)) // 1 arg
+		if (check_n_args(1, cmd))
 			help(cmd[1]);
+		else
+			help();
+
+	} else if (cmd[0] == "send") {
+		if (check = check_n_args(1, cmd))
+			send(cmd[1]);
 
 	} else if (cmd[0] == "move") {
 		if (check = check_n_args(3, cmd))
@@ -245,23 +253,17 @@ void Command::run(const string& _cmd){
 		if (check = check_n_args(0, cmd))
 			attack_target();
 
-	} else if (cmd[0] == "attack") { // 1 arg that must be start or stop
-		if ((check = check_n_args(1, cmd)) && (check = (cmd[1] == "start" || cmd[1] == "stop")))
-			attack(cmd[1] == "start" ? true : false);
+	} else if (cmd[0] == "attack") {
+		if (check = check_n_args(1, cmd))
+			attack((bool)stoi(cmd[1]));
 	
 	} else if (cmd[0] == "msg"){
 		if (check = check_n_args(2, cmd))
 			msg(stoi(cmd[1]), cmd[2]);
 
-	} else if (cmd[0] == "send"){
-		if (check = check_n_args(1, cmd))
-			send(cmd[1]);
-
 	} else if (cmd[0] == "wallhack"){
-		if (check = check_n_args(1, cmd)){
-
+		if (check = check_n_args(1, cmd))
 			set_wallhack((bool)stoi(cmd[1]));
-		}
 
 	} else if (cmd[0] == "shoot"){
 		// TESTING
@@ -284,8 +286,7 @@ void Command::run(const string& _cmd){
 	} else if (cmd[0] == "dc_stop"){
 		instance->disconnecting = false;
 
-	}
-	else if (cmd[0] == "inj") {
+	} else if (cmd[0] == "inj") {
 		if (check = check_n_args(1, cmd))
 			packet_injection(cmd[1]);
 

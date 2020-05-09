@@ -105,7 +105,7 @@ void print_help(string key, string msg){
 	print(color(COLOR_HELP) + "[" + key_up + "] " + color() + msg);
 }
 
-bool ingame(){
+/*bool ingame(){
 	// When we are inside the game, this becomes 0xCA
 	return ( *(byte*)((DWORD)addr::ChatObject + 0x54) == 0xCA );
-}
+}*/
