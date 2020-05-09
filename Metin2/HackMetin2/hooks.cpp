@@ -116,20 +116,27 @@ void detours() {
 }
 
 bool ingame(){
+	// When player is not available, that's the value at its pointer
 	return read_pointer_list(pointer_lists::PlayerObject) != (void*)0x1d4;
+}
+
+void save_packet_struct(packet_struct* pkt_struct){
+	// There seem to be more than one pkt_struct, maybe one for login?
+	// The one we want has 0x20000 in buf_recv_len
+	if (ingame() && !ready_to_send && pkt_struct->buf_recv_len == 0x20000) {
+		std_pkt_struct = *pkt_struct;
+		cout << "Packet copied! We can already send packets." << endl;
+		ready_to_send = true;
+	}
 }
 
 int __fastcall HookMySend(packet_struct *_this) {
 	int ret = 1;
-	string buf(_this->buf_send, _this->buf_send_len);
+	string buf(_this->buf_send + _this->buf_send_offset, _this->buf_send_len - _this->buf_send_offset);
 	string hex_buf = string_to_hex(buf);
 
 	// Get that f***ing packet_struct
-	if (ingame() && !ready_to_send) {
-		std_pkt_struct = *_this;
-		cout << "Packet copied! We can already send packets." << endl;
-		ready_to_send = true;
-	}
+	save_packet_struct(_this);
 
 	try {
 		Packet* ppacket = parse_packet_send(buf);

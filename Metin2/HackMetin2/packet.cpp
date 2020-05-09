@@ -84,14 +84,14 @@ string Packet::get_buf(){
 
 void Packet::attach_to_pkt_struct(packet_struct* pkt_struct){
 	string s = this->get_buf();
-	pkt_struct->buf_send_len = s.length();
-	memcpy(pkt_struct->buf_send, s.c_str(), s.length());
+	pkt_struct->buf_send_len = pkt_struct->buf_send_offset + s.length();
+	memcpy(pkt_struct->buf_send + pkt_struct->buf_send_offset, s.c_str(), s.length());
 	pkt_struct->buf_send[s.length()] = '\x00';
 }
 
 void Packet::check_size(const string& buf, uint size){
 	if (buf.size() < size){
-		string msg = "Bad packet size (should be " + to_string(size) + "). Buf: " + string_to_hex(buf);
+		string msg = "Bad packet size (should be " + to_string(size) + ", but it's " + to_string(buf.size()) + "). Buf: " + string_to_hex(buf);
 		throw exception(msg.c_str());
 	}
 }
@@ -114,6 +114,7 @@ int Packet::send(){
 	if (ready_to_send) {
 		packet_struct* new_pkt_struct = new packet_struct(std_pkt_struct); //hago una copia del pkt struct
 		new_pkt_struct->buf_send = new char[this->get_buf().length() + 1]; //creo un nuevo buffer para que no apunte al que usa el cliente
+		new_pkt_struct->buf_send_offset = 0;
 		ret = this->send(new_pkt_struct);
 		delete new_pkt_struct->buf_send;
 		delete new_pkt_struct;
