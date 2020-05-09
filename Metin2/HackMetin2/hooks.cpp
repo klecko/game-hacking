@@ -131,6 +131,7 @@ void save_packet_struct(packet_struct* pkt_struct){
 }
 
 int __fastcall HookMySend(packet_struct *_this) {
+
 	int ret = 1;
 	string buf(_this->buf_send + _this->buf_send_offset, _this->buf_send_len - _this->buf_send_offset);
 	string hex_buf = string_to_hex(buf);
@@ -155,13 +156,20 @@ int __fastcall HookMySend(packet_struct *_this) {
 }
 
 int __fastcall HookMyRecv(packet_struct *_this){
-	uint offset = _this->buf_recv_offset;
-	uint field28 = _this->field_0x28;
-	int ret = OriginalMyRecv(_this);
-	// recv_offset - 0x28 + len_recv = recv_offset2 --> len_recv = recv_offset2 + 0x28 - recv_offset
-	uint len = _this->buf_recv_offset - offset + field28;
+	// When client recvs, it cleans already_processed bytes from recv_buf and sets already_processed to 0.
+	// After receiving, each times it reads from recv_buf for parsing, it increases already_processed the
+	// number of bytes read. I should do the same, as right now I'm just assuming the whole buffer is
+	// a single packet.
 
-	string buf = string(_this->buf_recv, len);
+	// buf_recv_offset - already_processed + len_received = new_buf_recv_offset
+	// len_received = new_buf_recv_offset - buf_recv_offset + already_processed
+	uint offset = _this->buf_recv_offset;
+	uint already_processed = _this->already_processed;
+	int ret = OriginalMyRecv(_this);
+	uint len = _this->buf_recv_offset - offset + already_processed;
+
+	// equals _this->buf_recv + _this->buf_recv_offset - len
+	string buf = string(_this->buf_recv + offset - already_processed, len);
 	string hex_buf = string_to_hex(buf);
 
 	try{
@@ -190,7 +198,12 @@ int __fastcall HookChat(packet_struct *_this, int edx, const char* input, char p
 		OriginalAppendChat(objects::Chat, 0, Command::process_msg(input).c_str());
 		return 1;
 	} else if (input[0] == '@'){ // commands
-		Command::run(input+1);
+		try {
+			Command::run(input+1);
+		} catch (exception& e) {
+			cout << "[ERROR] Running command " << input+1 << ": " << e.what() << endl;
+			print_err("Error running command");
+		}
 		return 1;
 	}
 	return OriginalChat(_this, Command::process_msg(input).c_str(), param2);

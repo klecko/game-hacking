@@ -35,7 +35,7 @@ struct packet_struct {
 	char * buf_recv; /* dynamic */
 	uint buf_recv_len; /* 0x20000 */
 	uint buf_recv_offset; /* dynamic (suele ser 18, a veces 48) */
-	UINT field_0x28; /* parece ser buf_recv_offset copy? NOP, pero esta relacionado*/
+	UINT already_processed; /* parece ser buf_recv_offset copy? NOP, pero esta relacionado*/
 	char * buf_send; /* dynamic */
 	uint field_0x30; /* 0x1000 */
 	uint buf_send_len; /* 0x1100 */
