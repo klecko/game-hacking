@@ -70,6 +70,10 @@ Packet* parse_packet_recv(const std::string& buf);
 
 class Packet{
 private:
+	// Min size of the packet. A buff must be at least this long for being this
+	// type of packet. Used only for check_size.
+	static const uint size = 1;
+
 	// Generic packet can have any header
 	byte header = 0;
 
@@ -80,6 +84,7 @@ private:
 	void attach_to_pkt_struct(packet_struct* pkt_struct);
 
 protected:
+	// Throws an exception if buf is not at least size bytes long
 	static void check_size(const std::string& buf, uint size);
 
 public:
@@ -98,6 +103,9 @@ public:
 	// Should return true if the packet has been modified. It will then be sent
 	// instead of the original packet
 	virtual bool on_hook() { return false; };
+
+	// Real size of the packet. Should be the same as size for static packets.
+	uint bufsize() { return this->get_buf().size(); };
 
 	// Sends the packet to the server
 	int send();
@@ -258,23 +266,46 @@ public:
 class GC_CharacterAdd : public Packet {
 private:
 	static const byte header = HEADER_GC_CHARACTER_ADD;
-	static const uint size = 1; // TODO
+	static const uint size = 35;
+	uint id;
+	float direction;
+	int x, y, z;
+	byte type;
+	ushort mob_id;
+	byte moving_speed;
+	byte attack_speed;
 
 public:
 	GC_CharacterAdd() {};
 	GC_CharacterAdd(const std::string& buf);
+	std::string get_buf();
 	void log();
+	bool on_hook();
+};
+
+class GC_CharacterAdditionalInfo : public Packet {
+private:
+	static const byte header = HEADER_GC_CHAR_ADDITIONAL_INFO;
+	static const uint size = 54;
+
+public:
+	GC_CharacterAdditionalInfo() {};
+	GC_CharacterAdditionalInfo(const std::string& buf) {}; // TODO
+	std::string get_buf(); // TODO
 };
 
 class GC_CharacterDel : public Packet {
 private:
 	static const byte header = HEADER_GC_CHARACTER_DEL;
-	static const uint size = 1; // TODO
+	static const uint size = 5;
+	uint id;
 
 public:
 	GC_CharacterDel() {};
 	GC_CharacterDel(const std::string& buf);
+	std::string get_buf();
 	void log();
+	bool on_hook();
 };
 
 class GC_Chat : public Packet {

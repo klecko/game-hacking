@@ -48,6 +48,14 @@ void Command::update_enemy(uint id, int x, int y){
 	cout << "}" << endl << endl;*/
 }
 
+void Command::delete_enemy(uint id){
+	auto it = instance->enemies.find(id);
+	if (it != instance->enemies.end())
+		instance->enemies.erase(it);
+	else
+		cout << "[ERROR] Attempted to delete not existing enemy: " << id << endl;
+}
+
 
 bool Command::check_n_args(uint n, const vector<string>& cmd){
 	return cmd.size() >= n+1;

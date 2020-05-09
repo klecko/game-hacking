@@ -68,6 +68,7 @@ public:
 	static void set_id_attack(uint id_attack);
 	static uint get_id_attack();
 	static void update_enemy(uint id, int x, int y);
+	static void delete_enemy(uint id);
 
 	// Hacks
 	static void help();

@@ -131,7 +131,6 @@ void save_packet_struct(packet_struct* pkt_struct){
 }
 
 int __fastcall HookMySend(packet_struct *_this) {
-
 	int ret = 1;
 	string buf(_this->buf_send + _this->buf_send_offset, _this->buf_send_len - _this->buf_send_offset);
 	string hex_buf = string_to_hex(buf);
@@ -139,6 +138,8 @@ int __fastcall HookMySend(packet_struct *_this) {
 	// Get that f***ing packet_struct
 	save_packet_struct(_this);
 
+	// Doing a process_send_packet and detecting when a packet has been
+	// modified when there are several packets seems difficult
 	try {
 		Packet* ppacket = parse_packet_send(buf);
 		ppacket->log();
@@ -151,15 +152,38 @@ int __fastcall HookMySend(packet_struct *_this) {
 	} catch (exception& e) {
 		cout << "[ERROR] Send hook: " << e.what() << endl;
 	}
-	
+
 	return ret;
 }
 
+uint process_recv_packet(const string& buf){
+	uint size = buf.size();
+	string hex_buf = string_to_hex(buf);
+	try {
+		Packet* ppacket = parse_packet_recv(buf);
+		vector<int> allow = {HEADER_GC_CHARACTER_ADD, HEADER_GC_CHARACTER_DEL};//{ HEADER_GC_WARP };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
+		if (find(allow.begin(), allow.end(), ppacket->get_buf()[0]) != allow.end())
+			ppacket->log();
+			//cout << "[RECV] " << hex_buf << endl;
+
+		//ppacket->log();
+		ppacket->on_hook();
+
+		size = ppacket->bufsize();
+		//cout << size << endl;
+		delete ppacket;
+
+	} catch (exception& e) {
+		cout << "[ERROR] Processing recv packet: " << e.what() << endl;
+	}
+	return size;
+}
+
 int __fastcall HookMyRecv(packet_struct *_this){
-	// When client recvs, it cleans already_processed bytes from recv_buf and sets already_processed to 0.
-	// After receiving, each times it reads from recv_buf for parsing, it increases already_processed the
-	// number of bytes read. I should do the same, as right now I'm just assuming the whole buffer is
-	// a single packet.
+	// When client recvs, it cleans already_processed bytes from recv_buf and
+	// sets already_processed to 0. After receiving, as there can be more than
+	// one packet, each time it reads from recv_buf for parsing it increases
+	// already_processed the number of bytes read.
 
 	// buf_recv_offset - already_processed + len_received = new_buf_recv_offset
 	// len_received = new_buf_recv_offset - buf_recv_offset + already_processed
@@ -171,20 +195,16 @@ int __fastcall HookMyRecv(packet_struct *_this){
 	// equals _this->buf_recv + _this->buf_recv_offset - len
 	string buf = string(_this->buf_recv + offset - already_processed, len);
 	string hex_buf = string_to_hex(buf);
-
-	try{
-		Packet* ppacket = parse_packet_recv(buf);
-		vector<int> allow = { HEADER_GC_WARP };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
-		if (find(allow.begin(), allow.end(), ppacket->get_buf()[0]) != allow.end())
-			cout << "[RECV] " << hex_buf << endl;
-		//ppacket->log();
-		ppacket->on_hook();
-
-		delete ppacket;
-
-	} catch (exception& e) {
-		cout << "[ERROR] Recv hook: " << e.what() << endl;
+	// Process every packet in the buf. Will stop when it reaches an unknown
+	// packet because we won't know its size.
+	int i = 0;
+	already_processed = 0;
+	while (already_processed < buf.size()){
+		string buf_pkt = buf.substr(already_processed);
+		already_processed += process_recv_packet(buf_pkt);
+		i++;
 	}
+	//cout << "Processed " << i << " recv packets" << endl;
 	return ret;
 }
 

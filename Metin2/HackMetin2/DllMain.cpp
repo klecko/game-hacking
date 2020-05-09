@@ -12,11 +12,11 @@
 [TODO]
 1. Teleport
 3. Try to reduce dependencies?
-4. Think about two packets in the same buf. I need the size of every packet first
-6. Make autodmg clear the list of enemies --> need to solve 4
+6. Maybe in attack hack we could have only ids are not coordinates
 7. Change name of attack hack to autodmg?
 8. MORE PACKETS
 9. Revisar estructura cmd
+10. Maybe I could avoid all those packs and unpacks just copying memory
 
 Packets attacking with a bow a metin whose id was: 191193 (0x02ead9)
 seems like there are two packets?

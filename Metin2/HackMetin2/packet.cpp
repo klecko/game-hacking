@@ -41,6 +41,8 @@ Packet* parse_packet_recv(const string& buf) {
 	switch (header) {
 		case HEADER_GC_CHARACTER_ADD:
 			return new GC_CharacterAdd(buf);
+		case HEADER_GC_CHAR_ADDITIONAL_INFO:
+			return new GC_CharacterAdditionalInfo(buf);
 		case HEADER_GC_CHARACTER_DEL:
 			return new GC_CharacterDel(buf);
 		case HEADER_GC_MOVE:
@@ -448,28 +450,73 @@ string GC_Move::get_buf() {
 
 // [ GC_CharacterAdd ]
 /*
-01F0B50500B1DED842A3810E0074C7030000000000006500966400000000000000000001F1B50500ABCC1443E2810E00F5C50300000000000065009664000000000000000000015DFE0500F3E4A443FE840E0091BE0300000000000065009664000000000000000000029AB605000280FC050002C8B60500029BB605000278FC050002A1B60500027FFC050002A5B605000288FC05000234D605000290340000029EB6050002A0B6050002A4B6050002A2B605000281FC0500028F34000002ECD20500
-01C8B60500027EC642387F0E0044CB03000000000000AC00646400000000000000000001EEB50500A7CCBA429D800E0058C6030000000000006500966400000000000000000001EAD20500214D88431E860E0072BA03000000000000650096640000000000000000000160FE0500C2961540DE820E002EC003000000000000650096640000000000000000000161FE050008239C435F840E0093BD030000000000006500966400000000000000000001ECB50500FAFEAE43F07F0E0015C8030000000000006500966400000000000000000001C8AF0500E545084377820E0044D603000000000000AB00646400000000000000000001CAAF050001006143AC810E00C7D403000000000000AB00646400000000000000000002A3B605000232D6050002A7B605000235D605000233D60500
+01 FFD20800 8832AF43 12910E00 0FC10300 00000000 00 6500 96 64 00 00000000 00000000
+01 FCD20800 E4A1A343 F9900E00 61BE0300 00000000 00 6500 96 64 00 00000000 00000000
+0  1        5        9        13       17       21 22   24 25
 */
-GC_CharacterAdd::GC_CharacterAdd(const string& buf)
-: Packet(buf){
+GC_CharacterAdd::GC_CharacterAdd(const string& buf){
 	check_size(buf, this->size);
+	this->id = u32(buf.substr(1, 4));
+	this->direction = 0; // buf.substr(5,4) as float
+	this->x = u32(buf.substr(9, 4));
+	this->y = u32(buf.substr(13, 4));
+	this->z = u32(buf.substr(17, 4));
+	this->type = buf[21];
+	this->mob_id = u16(buf.substr(22, 2));
+	this->moving_speed = buf[24];
+	this->attack_speed = buf[25];
+}
+
+string GC_CharacterAdd::get_buf(){
+	string buf;
+	buf += this->header;
+	buf += p32(this->id);
+	buf += p32(0); // direction as float
+	buf += p32(this->x) + p32(this->y) + p32(this->z);
+	buf += this->type;
+	buf += p16(this->mob_id);
+	buf += this->moving_speed;
+	buf += this->attack_speed;
+	buf += '\x00'; // ?
+	buf += p32(0); // ?
+	buf += p32(0); // ?
+	return buf;
 }
 
 void GC_CharacterAdd::log(){
-	string hex_buf = string_to_hex(this->get_buf());
-	cout << "[RECV] Character add packet: " << hex_buf << endl;
+	cout << "[RECV] Character add, id " << this->id << " at (" << this->x << ", " << this->y << ", " << this->z << ") of type "
+		<< (int)this->type << " and mob id " << this->mob_id << endl;
 }
+
+bool GC_CharacterAdd::on_hook(){
+	Command::update_enemy(this->id, this->x, this->y);
+	return false;
+}
+
+// [ GC_CharacterAdditionalInfo ]
+// TODO
+std::string GC_CharacterAdditionalInfo::get_buf() { return string(this->size, 'A'); }
 
 // [ GC_CharacterDel ]
-GC_CharacterDel::GC_CharacterDel(const string& buf)
-: Packet(buf) {
+GC_CharacterDel::GC_CharacterDel(const string& buf){
 	check_size(buf, this->size);
+	this->id = u32(buf.substr(1, 4));
 }
 
-void GC_CharacterDel::log() {
-	string hex_buf = string_to_hex(this->get_buf());
-	cout << "[RECV] Character del packet: " << hex_buf << endl;
+string GC_CharacterDel::get_buf(){
+	string buf;
+	buf += this->header;
+	buf += p32(this->id);
+	return buf;
+}
+
+void GC_CharacterDel::log(){
+	cout << "[RECV] Character del: " << this->id << endl;
+}
+
+bool GC_CharacterDel::on_hook(){
+	Command::delete_enemy(this->id);
+	return false;
 }
 
 // [ GC_Chat ]
