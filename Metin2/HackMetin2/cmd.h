@@ -25,9 +25,11 @@
 #include <map>
 
 #include "enemy.h"
+#include "player.h"
 
 typedef unsigned char byte;
 typedef unsigned int uint;
+
 
 class Command {
 private:

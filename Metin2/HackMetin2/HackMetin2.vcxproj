@@ -131,6 +131,7 @@
     <ClInclude Include="packet.h" />
     <ClInclude Include="packet_headers.h" />
     <ClInclude Include="packet_struct.h" />
+    <ClInclude Include="player.h" />
     <ClInclude Include="sigscan.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>

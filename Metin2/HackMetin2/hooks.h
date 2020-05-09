@@ -4,27 +4,22 @@
 #include <Windows.h>
 #include <vector>
 #include "packet_struct.h"
+#include "player.h"
 
-// Namespace for every address scanned by sigscan
-namespace addr {
-	extern DWORD Base;
-	extern void* MySend;
-	extern void* MyRecv;
+// Namespace for game objects
+namespace objects {
 	extern void* Chat;
-	extern void* GetTime;
-	extern void* AppendChat;
-	extern void* ChatObject;
-	extern void* PlayerObject;
+	extern player* Player;
 }
 
-// Reads the pointer list, being the first pointer addr::base + offsets[0]
+// Reads the pointer list, being the first pointer the base addr + offsets[0]
 // Example: {1,2,3} --> [[base + 1] + 2] + 3
 void* read_pointer_list(std::vector<DWORD> offsets);
 
-// pillar addr de player y de packet_struct cuando inicie el juego
+// Gets addresses of game objects
 void get_objects_addresses();
 
-// Sigscans every function and saves its address in namespace addr
+// Gets addresses of game functions through sigscan
 void sigscan();
 
 // Performs detours and updates addresses of original functions

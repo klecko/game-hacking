@@ -9,6 +9,7 @@
 #include "detours.h"
 #include "utils.h"
 #include "cmd.h"
+#include "player.h"
 
 #pragma comment(lib, "detours.lib")
 
@@ -43,16 +44,9 @@ namespace mask {
 	const char GetAttackByte[] = "xxxxxxx????xxx????xxx????xxx????xxxxx";
 }
 
-namespace addr {
-	DWORD Base;
-	void* MySend;
-	void* MyRecv;
+namespace objects {
 	void* Chat;
-	void* GetTime;
-	void* AppendChat;
-	void* GetAttackByte;
-	void* ChatObject;
-	void* PlayerObject;
+	player* Player;
 }
 
 namespace pointer_lists {
@@ -65,7 +59,7 @@ void* read_pointer_list(vector<DWORD> offsets){
 	DWORD last_offset = offsets.back();
 	offsets.pop_back(); // Don't access last offset
 
-	DWORD result = addr::Base;
+	DWORD result = (DWORD)GetModuleHandle(NULL);
 	for (DWORD offset : offsets)
 		result = *(DWORD*)(result + offset);
 
@@ -79,44 +73,30 @@ void get_objects_addresses(){
 		Sleep(1000);
 
 	cout << "Getting objects addresses..." << hex << endl;
-	addr::PlayerObject = read_pointer_list(pointer_lists::PlayerObject);
-	while (addr::PlayerObject == (void*)0x1d4){
-		cout << "[ERROR] Getting Player Object pointer. Trying again.." << endl;
-		Sleep(2000);
-		addr::PlayerObject = read_pointer_list(pointer_lists::PlayerObject);
-	}
+	objects::Chat = read_pointer_list(pointer_lists::ChatObject);
+	objects::Player = (player*)read_pointer_list(pointer_lists::PlayerObject);
 
-	cout << "PlayerObject found at " << (DWORD)addr::PlayerObject << endl;
+	cout << "Chat found at " << (DWORD)objects::Chat << endl;
+	cout << "Player found at " << (DWORD)objects::Player << endl;
 	cout << endl;
 }
 
 void sigscan() {
 	cout << "Sigscanning..." << endl;
 	SigScan scanner;
-	addr::Base = (DWORD)GetModuleHandle(NULL);
-	addr::MySend = scanner.FindPattern(process, pattern::MySend, mask::MySend);
-	addr::MyRecv = scanner.FindPattern(process, pattern::MyRecv, mask::MyRecv);
-	addr::Chat = scanner.FindPattern(process, pattern::Chat, mask::Chat);
-	addr::GetTime = scanner.FindPattern(process, pattern::GetTime, mask::GetTime);
-	addr::AppendChat = scanner.FindPattern(process, pattern::AppendChat, mask::AppendChat);
-	addr::GetAttackByte = scanner.FindPattern(process, pattern::GetAttackByte, mask::GetAttackByte);
-	addr::ChatObject = read_pointer_list(pointer_lists::ChatObject);
+	OriginalMySend = (pMySend_t)scanner.FindPattern(process, pattern::MySend, mask::MySend);
+	OriginalMyRecv = (pMyRecv_t)scanner.FindPattern(process, pattern::MyRecv, mask::MyRecv);
+	OriginalChat = (pChat_t)scanner.FindPattern(process, pattern::Chat, mask::Chat);
+	OriginalGetTime = (pGetTime_t)scanner.FindPattern(process, pattern::GetTime, mask::GetTime);
+	OriginalAppendChat = (pAppendChat_t)scanner.FindPattern(process, pattern::AppendChat, mask::AppendChat);
+	OriginalGetAttackByte = (pGetAttackByte_t)scanner.FindPattern(process, pattern::GetAttackByte, mask::GetAttackByte);
 
-	// Function assignation
-	OriginalMySend = (pMySend_t)addr::MySend;
-	OriginalMyRecv = (pMyRecv_t)addr::MyRecv;
-	OriginalChat = (pChat_t)addr::Chat;
-	OriginalGetTime = (pGetTime_t)addr::GetTime;
-	OriginalAppendChat = (pAppendChat_t)addr::AppendChat;
-	OriginalGetAttackByte = (pGetAttackByte_t)addr::GetAttackByte;
-
-	cout << "MySend found at " << (DWORD)addr::MySend << endl;
-	cout << "MyRecv found at " << (DWORD)addr::MyRecv << endl;
-	cout << "Chat found at " << (DWORD)addr::Chat << endl;
-	cout << "GetTime found at " << (DWORD)addr::GetTime << endl;
-	cout << "AppendChat found at " << (DWORD)addr::AppendChat << endl;
-	cout << "GetAttackByte found at " << (DWORD)addr::GetAttackByte << endl;
-	cout << "ChatObject found at " << (DWORD)addr::ChatObject << endl;
+	cout << "MySend found at " << (DWORD)OriginalMySend << endl;
+	cout << "MyRecv found at " << (DWORD)OriginalMyRecv << endl;
+	cout << "Chat found at " << (DWORD)OriginalChat << endl;
+	cout << "GetTime found at " << (DWORD)OriginalGetTime << endl;
+	cout << "AppendChat found at " << (DWORD)OriginalAppendChat << endl;
+	cout << "GetAttackByte found at " << (DWORD)OriginalGetAttackByte << endl;
 	cout << endl;
 }
 
@@ -124,19 +104,14 @@ void detours() {
 	cout << "Doing detours..." << endl;
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
-	DetourAttach(&addr::MySend, HookMySend);
-	DetourAttach(&addr::MyRecv, HookMyRecv);
-	DetourAttach(&addr::Chat, HookChat);
+	DetourAttach((void**)&OriginalMySend, HookMySend);
+	DetourAttach((void**)&OriginalMyRecv, HookMyRecv);
+	DetourAttach((void**)&OriginalChat, HookChat);
 	DetourTransactionCommit();
 
-	// Function update, as original func addresses change after detour
-	OriginalMySend = (pMySend_t)addr::MySend;
-	OriginalMyRecv = (pMyRecv_t)addr::MyRecv;
-	OriginalChat = (pChat_t)addr::Chat;
-
-	cout << "MySend is now at " << (DWORD)addr::MySend << endl;
-	cout << "MyRecv is now at " << (DWORD)addr::MyRecv << endl;
-	cout << "Chat is now at " << (DWORD)addr::Chat << endl;
+	cout << "MySend is now at " << (DWORD)OriginalMySend << endl;
+	cout << "MyRecv is now at " << (DWORD)OriginalMyRecv << endl;
+	cout << "Chat is now at " << (DWORD)OriginalChat << endl;
 	cout << endl;
 }
 
@@ -205,7 +180,7 @@ int __fastcall HookChat(packet_struct *_this, int edx, const char* input, char p
 	cout << "CHAT: " << input << endl;
 
 	if (input[0] == '$'){ // for testing and not sending the msg
-		OriginalAppendChat(addr::ChatObject, 0, Command::process_msg(input).c_str());
+		OriginalAppendChat(objects::Chat, 0, Command::process_msg(input).c_str());
 		return 1;
 	} else if (input[0] == '@'){ // commands
 		Command::run(input+1);

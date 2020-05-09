@@ -18,6 +18,7 @@
 7. Change name of attack hack to autodmg?
 8. MORE PACKETS
 9. Revisar estructura cmd
+10. Check why sometimes the std_pkt_struct we get doesn't work
 
 Packets attacking with a bow a metin whose id was: 191193 (0x02ead9)
 seems like there are two packets?

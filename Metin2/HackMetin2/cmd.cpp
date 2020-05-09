@@ -6,7 +6,7 @@
 #include "utils.h"
 #include "hooks.h"
 #include "packet.h"
-
+#include "player.h"
 
 using namespace std;
 
@@ -130,8 +130,7 @@ void Command::msg(byte type, const string& msg){
 }
 
 void Command::set_wallhack(bool enabled){
-	// TODO: player structure PL0X
-	*(byte*)((DWORD)addr::PlayerObject + 0x490) = (byte)enabled;
+	objects::Player->wallhack_enabled = enabled;
 	print(string("Set wallhack ") + (enabled ? "on." : "off."));
 }
 

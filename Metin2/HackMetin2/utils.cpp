@@ -92,7 +92,7 @@ string color(string c){
 
 void print(string msg) {
 	msg = color(COLOR_HACK) + "[HACK] " + color() + msg;
-	OriginalAppendChat(addr::ChatObject, 0, msg.c_str());
+	OriginalAppendChat(objects::Chat, 0, msg.c_str());
 }
 
 void print_err(string msg){
