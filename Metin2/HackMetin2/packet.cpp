@@ -86,6 +86,7 @@ string Packet::get_buf(){
 
 void Packet::attach_to_pkt_struct(packet_struct* pkt_struct){
 	string s = this->get_buf();
+	// length is offset where we are copying to plus length of what we are copying
 	pkt_struct->buf_send_len = pkt_struct->buf_send_offset + s.length();
 	memcpy(pkt_struct->buf_send + pkt_struct->buf_send_offset, s.c_str(), s.length());
 	pkt_struct->buf_send[s.length()] = '\x00';
@@ -410,8 +411,6 @@ GC_Move::GC_Move(byte type, byte subtype, byte direction, uint id, int x, int y,
 }
 
 void GC_Move::set_type_str() {
-	// OJO: ALGUNAS VECES DA ERROR, LOS TIPO 2 NO SE QUE SON Y PARECEN
-	// TENER ESTRUCTURA Y LONGITUD DIFERENTE
 	switch (this->type) {
 	case 0:
 		this->type_str = "stop_moving";
@@ -444,7 +443,6 @@ string GC_Move::get_buf() {
 	buf += this->direction;
 	buf += p32(this->id) + p32(this->x) + p32(this->y) + p32(OriginalGetTime());
 	buf += p32(this->duration);
-	buf += '\x00';
 	return buf;
 }
 
@@ -454,6 +452,7 @@ string GC_Move::get_buf() {
 01 FCD20800 E4A1A343 F9900E00 61BE0300 00000000 00 6500 96 64 00 00000000 00000000
 0  1        5        9        13       17       21 22   24 25
 */
+
 GC_CharacterAdd::GC_CharacterAdd(const string& buf){
 	check_size(buf, this->size);
 	this->id = u32(buf.substr(1, 4));
@@ -498,6 +497,10 @@ bool GC_CharacterAdd::on_hook(){
 std::string GC_CharacterAdditionalInfo::get_buf() { return string(this->size, 'A'); }
 
 // [ GC_CharacterDel ]
+GC_CharacterDel::GC_CharacterDel(uint id){
+	this->id = id;
+}
+
 GC_CharacterDel::GC_CharacterDel(const string& buf){
 	check_size(buf, this->size);
 	this->id = u32(buf.substr(1, 4));

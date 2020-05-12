@@ -12,6 +12,7 @@
 [TODO]
 1. Teleport
 3. Try to reduce dependencies?
+5. Investigar la func a la que se llama en parse_recv_chat, parece que itera los ids
 6. Maybe in attack hack we could have only ids are not coordinates
 7. Change name of attack hack to autodmg?
 8. MORE PACKETS

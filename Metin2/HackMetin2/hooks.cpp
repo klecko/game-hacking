@@ -161,10 +161,9 @@ uint process_recv_packet(const string& buf){
 	string hex_buf = string_to_hex(buf);
 	try {
 		Packet* ppacket = parse_packet_recv(buf);
-		vector<int> allow = {HEADER_GC_CHARACTER_ADD, HEADER_GC_CHARACTER_DEL};//{ HEADER_GC_WARP };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
+		vector<int> allow = { HEADER_GC_CHARACTER_POINTS };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
 		if (find(allow.begin(), allow.end(), ppacket->get_buf()[0]) != allow.end())
-			ppacket->log();
-			//cout << "[RECV] " << hex_buf << endl;
+			cout << "[RECV IMPORTANT] " << hex_buf << endl;
 
 		//ppacket->log();
 		ppacket->on_hook();
@@ -192,8 +191,8 @@ int __fastcall HookMyRecv(packet_struct *_this){
 	int ret = OriginalMyRecv(_this);
 	uint len = _this->buf_recv_offset - offset + already_processed;
 
-	// equals _this->buf_recv + _this->buf_recv_offset - len
-	string buf = string(_this->buf_recv + offset - already_processed, len);
+	// equals _this->buf_recv + offset - already_processed
+	string buf = string(_this->buf_recv + _this->buf_recv_offset - len, len);
 	string hex_buf = string_to_hex(buf);
 	// Process every packet in the buf. Will stop when it reaches an unknown
 	// packet because we won't know its size.

@@ -263,6 +263,7 @@ public:
 	bool on_hook();
 };
 
+
 class GC_CharacterAdd : public Packet {
 private:
 	static const byte header = HEADER_GC_CHARACTER_ADD;
@@ -283,6 +284,7 @@ public:
 	bool on_hook();
 };
 
+
 class GC_CharacterAdditionalInfo : public Packet {
 private:
 	static const byte header = HEADER_GC_CHAR_ADDITIONAL_INFO;
@@ -294,6 +296,7 @@ public:
 	std::string get_buf(); // TODO
 };
 
+
 class GC_CharacterDel : public Packet {
 private:
 	static const byte header = HEADER_GC_CHARACTER_DEL;
@@ -302,6 +305,7 @@ private:
 
 public:
 	GC_CharacterDel() {};
+	GC_CharacterDel(uint id);
 	GC_CharacterDel(const std::string& buf);
 	std::string get_buf();
 	void log();
