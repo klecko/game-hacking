@@ -605,6 +605,7 @@ void GC_ItemUpdate::log() {
 }
 
 // [ GC_ItemDel ]
+// 14 01 1400 0000000000000000000000000000000000000000000000000000000000000000000000000000
 GC_ItemDel::GC_ItemDel(const string& buf)
 	: Packet(buf) {
 	check_size(buf, this->size);

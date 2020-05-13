@@ -20,10 +20,10 @@ void* read_pointer_list(std::vector<DWORD> offsets);
 void get_objects_addresses();
 
 // Gets addresses of game functions through sigscan
-void sigscan();
+bool sigscan();
 
 // Performs detours and updates addresses of original functions
-void detours();
+bool detours();
 
 // Checks if we are already logged in. TODO: check what happens when relogging
 bool ingame();

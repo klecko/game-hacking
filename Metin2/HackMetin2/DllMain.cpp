@@ -1,6 +1,7 @@
 #include <iostream>
 #include <Windows.h>
 #include <string>
+#include <conio.h>
 
 #include "hooks.h"
 #include "sigscan.h"
@@ -11,9 +12,10 @@
 /*
 [TODO]
 1. Teleport
+2. Investigar relogging
 3. Try to reduce dependencies?
 5. Investigar la func a la que se llama en parse_recv_chat, parece que itera los ids
-6. Maybe in attack hack we could have only ids are not coordinates
+6. Maybe in attack hack we could have only ids and not coordinates
 7. Change name of attack hack to autodmg?
 8. MORE PACKETS
 9. Revisar estructura cmd
@@ -63,18 +65,31 @@ void print_inicio(){
 	print("Welcome to heaven, boy.");
 }
 
-
-
+void press_key(){
+	cout << endl << "Press key to exit..." << endl;
+	_getch();
+}
 
 BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved) {
 	if (dwReason == DLL_PROCESS_ATTACH) {
 		AllocConsole();
 		freopen_s(&pCout, "CONOUT$", "w", stdout);
 		freopen_s(&pCin, "CONIN$", "r", stdin);
-		cout << "HI BABE" << hex << endl;
-		sigscan();
-		detours();
+		cout << "[WELCOME] Metin2 hack by Klecko" << endl << endl;
+
+		cout << hex;
+		if (!sigscan()){
+			cout << "[ERROR] Sigscan failed" << endl;
+			press_key();
+			return false;
+		}
+		if (!detours()){
+			cout << "[ERROR] Detours failed" << endl;
+			press_key();
+			return false;
+		}
 		cout << dec;
+
 		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)get_objects_addresses, 0, 0, 0);
 		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)print_inicio, 0, 0, 0);
 
@@ -82,6 +97,7 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved) {
 		cout << "see you.." << endl;
 		fclose(pCout);
 		fclose(pCin);
+		FreeConsole();
 	}
 	return true;
 }

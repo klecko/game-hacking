@@ -72,47 +72,70 @@ void get_objects_addresses(){
 	while (!ingame())
 		Sleep(1000);
 
-	cout << "Getting objects addresses..." << hex << endl;
+	cout << "[OBJECTS] Starting..." << hex << endl;
 	objects::Chat = read_pointer_list(pointer_lists::ChatObject);
 	objects::Player = (player*)read_pointer_list(pointer_lists::PlayerObject);
 
-	cout << "Chat found at " << (DWORD)objects::Chat << endl;
-	cout << "Player found at " << (DWORD)objects::Player << endl;
+	cout << "[OBJECTS] Chat is at " << (DWORD)objects::Chat << endl;
+	cout << "[OBJECTS] Player is at " << (DWORD)objects::Player << endl;
+	cout << "[OBJECTS] Done!" << endl;
 	cout << endl;
 }
 
-void sigscan() {
-	cout << "Sigscanning..." << endl;
+// Calls scanner.FindPattern with error checking. Can return.
+// I'm sorry, a project of mine *must* have a pair of ugly macros.
+#define findfunc(func) \
+	Original##func = (p##func##_t)scanner.FindPattern(process, pattern::func, mask::func);  \
+	if (Original##func != nullptr)                                                          \
+		cout << "[SIGSCAN] " #func " found at " << (DWORD)Original##func << endl;           \
+	else {                                                                                  \
+		cout << "[SIGSCAN] Not found " #func "!" << endl;                                   \
+		return false;                                                                       \
+	}
+
+bool sigscan() {
+	cout << "[SIGSCAN] Starting..." << endl;
 	SigScan scanner;
-	OriginalMySend = (pMySend_t)scanner.FindPattern(process, pattern::MySend, mask::MySend);
-	OriginalMyRecv = (pMyRecv_t)scanner.FindPattern(process, pattern::MyRecv, mask::MyRecv);
-	OriginalChat = (pChat_t)scanner.FindPattern(process, pattern::Chat, mask::Chat);
-	OriginalGetTime = (pGetTime_t)scanner.FindPattern(process, pattern::GetTime, mask::GetTime);
-	OriginalAppendChat = (pAppendChat_t)scanner.FindPattern(process, pattern::AppendChat, mask::AppendChat);
-	OriginalGetAttackByte = (pGetAttackByte_t)scanner.FindPattern(process, pattern::GetAttackByte, mask::GetAttackByte);
 
-	cout << "MySend found at " << (DWORD)OriginalMySend << endl;
-	cout << "MyRecv found at " << (DWORD)OriginalMyRecv << endl;
-	cout << "Chat found at " << (DWORD)OriginalChat << endl;
-	cout << "GetTime found at " << (DWORD)OriginalGetTime << endl;
-	cout << "AppendChat found at " << (DWORD)OriginalAppendChat << endl;
-	cout << "GetAttackByte found at " << (DWORD)OriginalGetAttackByte << endl;
-	cout << endl;
+	findfunc(MySend);
+	findfunc(MyRecv);
+	findfunc(Chat);
+	findfunc(GetTime);
+	findfunc(AppendChat);
+	findfunc(GetAttackByte);
+
+	cout << "[SIGSCAN] Done!" << endl << endl;
+	return true;
 }
 
-void detours() {
-	cout << "Doing detours..." << endl;
+// Calls DetourAttach with error checking. Can return.
+#define detour(func)                                            \
+	err = DetourAttach((void**)&Original##func, Hook##func);    \
+	if (err != NO_ERROR){                                       \
+		cout << "[DETOURS] Error detouring " #func "!" << endl; \
+		return false;                                           \
+	}
+
+bool detours() {
+	DWORD err;
+	cout << "[DETOURS] Starting..." << endl;
+
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
-	DetourAttach((void**)&OriginalMySend, HookMySend);
-	DetourAttach((void**)&OriginalMyRecv, HookMyRecv);
-	DetourAttach((void**)&OriginalChat, HookChat);
-	DetourTransactionCommit();
+	detour(MySend);
+	detour(MyRecv);
+	detour(Chat);
+	err = DetourTransactionCommit();
+	if (err != NO_ERROR){
+		cout << "[DETOURS] Error commiting detours!" << endl;
+		return false;
+	}
 
-	cout << "MySend is now at " << (DWORD)OriginalMySend << endl;
-	cout << "MyRecv is now at " << (DWORD)OriginalMyRecv << endl;
-	cout << "Chat is now at " << (DWORD)OriginalChat << endl;
-	cout << endl;
+	cout << "[DETOURS] MySend is now at " << (DWORD)OriginalMySend << endl;
+	cout << "[DETOURS] MyRecv is now at " << (DWORD)OriginalMyRecv << endl;
+	cout << "[DETOURS] Chat is now at " << (DWORD)OriginalChat << endl;
+	cout << "[DETOURS] Done!" << endl << endl;
+	return true;
 }
 
 bool ingame(){
@@ -161,7 +184,7 @@ uint process_recv_packet(const string& buf){
 	string hex_buf = string_to_hex(buf);
 	try {
 		Packet* ppacket = parse_packet_recv(buf);
-		vector<int> allow = { HEADER_GC_CHARACTER_POINTS };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
+		vector<int> allow = { HEADER_GC_CHARACTER_POINTS, HEADER_GC_ITEM_DEL };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
 		if (find(allow.begin(), allow.end(), ppacket->get_buf()[0]) != allow.end())
 			cout << "[RECV IMPORTANT] " << hex_buf << endl;
 
