@@ -16,7 +16,7 @@
 3. Try to reduce dependencies?
 5. Investigar la func a la que se llama en parse_recv_chat, parece que itera los ids
 6. Maybe in attack hack we could have only ids and not coordinates
-7. Change name of attack hack to autodmg?
+7. Add a function to check if we're okay: send a packet and expect answer
 8. MORE PACKETS
 9. Revisar estructura cmd
 10. Maybe I could avoid all those packs and unpacks just copying memory

