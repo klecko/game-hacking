@@ -10,12 +10,7 @@
  * and the rest of the interface. It handles the typed command and calls the
  * corresponding function.
  *
- * Current commands:
- *     - send hexbuf: sends the packet built with the hexbuf
- *     - move type x y: moves to coords (x, y)
- *     - attack_target: attacks the chosen target
- *     - msg type message: sends the message as selected type
- *     - wallhack 0/1: enables or disables the wallhack
+ * Current commands are documented in Command::help_msgs.
 */
 
 #pragma once
