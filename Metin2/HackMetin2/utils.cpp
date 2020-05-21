@@ -81,7 +81,7 @@ string color() {
 	return s;
 }
 
-string color(string c){
+string color(const string& c){
 	string s = "";
 	if (c.length() == 6)
 		s = "|cFF" + c + "|H|h";
@@ -91,21 +91,25 @@ string color(string c){
 }
 
 void print(string msg) {
+	if (objects::Chat == nullptr){
+		cout << "[ERROR] Tried to print to chat but chat object has not been found" << endl;
+		return;
+	}
+
 	msg = color(COLOR_HACK) + "[HACK] " + color() + msg;
 	OriginalAppendChat(objects::Chat, 0, msg.c_str());
 }
 
-void print_err(string msg){
+void print_err(const string& msg){
 	print(color(COLOR_ERR) + "[ERROR] " + color() + msg);
 }
 
-void print_help(string key, string msg){
+void print_help(const string& key, const string& msg){
 	string key_up(key);
 	for (auto& c : key_up) c = toupper(c);
 	print(color(COLOR_HELP) + "[" + key_up + "] " + color() + msg);
 }
 
-/*bool ingame(){
-	// When we are inside the game, this becomes 0xCA
-	return ( *(byte*)((DWORD)addr::ChatObject + 0x54) == 0xCA );
-}*/
+bool ingame() {
+	return objects::Player != nullptr;
+}

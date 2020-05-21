@@ -14,7 +14,7 @@ const map<string, string> Command::help_msgs = {
 	{"send", "Send the packet built with the hexbuf. Syntax: send hexbuf"},
 	{"move", "Move to coords (x, y). Syntax: move type x y"},
 	{"attack", "Attack current target. Syntax: attack"},
-	{"autodmg", "Enable or disable the autodmg hack, which attracts and attacks every close enemy. Syntax: attack 0/1"},
+	{"autodmg", "Enable or disable the autodmg hack, which attracts and attacks every close enemy. Syntax: autodmg 0/1"},
 	{"msg", "Send a message. Syntax: msg type message"},
 	{"wallhack", "Enable or disable the wallhack. Syntax: wallhack 0/1"},
 	{"dc", "Start trying to disconnect the player. It sends by default 20 dc packets. Syntax: dc player [packets]"},

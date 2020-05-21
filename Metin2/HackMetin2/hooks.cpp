@@ -21,6 +21,8 @@ pChat_t OriginalChat;
 pGetTime_t OriginalGetTime;
 pAppendChat_t OriginalAppendChat;
 pGetAttackByte_t OriginalGetAttackByte;
+pPlayerRandomFunc_t OriginalPlayerRandomFunc;
+pChatRandomFunc_t OriginalChatRandomFunc;
 
 const char process[] = "metin2client.exe";
 
@@ -32,6 +34,8 @@ namespace pattern {
 	const char GetTime[] = "\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x2B\x0D\x00\x00\x00\x00\x03\xC1\xC3";
 	const char AppendChat[] = "\x55\x8B\xEC\x83\xEC\x20\x89\x4D\xFC\xE8\x00\x00\x00\x00\x89\x45\xEC\x83\x7D\xEC\x00\x75\x12\x68\x00\x00\x00\x00\xE8\x00\x00\x00\x00";
 	const char GetAttackByte[] = "\x55\x8B\xEC\x51\x0F\xB6\x05\x74\x06\x91\x00\x0F\xB6\x88\x6C\x06\x91\x00\x0F\xB6\x15\x74\x06\x91\x00\x0F\xB6\x82\xB8\x17\x8E\x00\x33\xC8\x88\x4D\xFF";
+	const char PlayerRandomFunc[] = "\x55\x8b\xec\x83\xec\x18\x56\x57\x8b\x7d\x08\x8b\xf1\x8b\xcf\xe8";
+	const char ChatRandomFunc[] = "\x55\x8B\xEC\x83\xEC\x24\x89\x4D\xFC\x8B\x45\x08\x50\x8B\x4D\xFC";
 }
 
 // Patterns masks for sigscanning
@@ -42,14 +46,16 @@ namespace mask {
 	const char GetTime[] = "xx????x????xx????xx????xxx";
 	const char AppendChat[] = "xxxxxxxxxx????xxxxxxxxxx????x????";
 	const char GetAttackByte[] = "xxxxxxx????xxx????xxx????xxx????xxxxx";
+	const char PlayerRandomFunc[] = "xxxxxxx????x?x?x";
+	const char ChatRandomFunc[] = "xxxxxxxxxxxxxxxx";
 }
 
 namespace objects {
-	void* Chat;
-	player* Player;
+	void* Chat = nullptr;
+	player* Player = nullptr;
 }
 
-namespace pointer_lists {
+/*namespace pointer_lists {
 	vector<DWORD> ChatObject = {0x2fe560, 4};
 	vector<DWORD> PacketStruct = {0x2fe438};
 	vector<DWORD> PlayerObject = {0x2fc158, 0xc, 0x1d4};
@@ -66,21 +72,23 @@ void* read_pointer_list(vector<DWORD> offsets){
 	return (void*)(result + last_offset);
 }
 
+
 void get_objects_addresses(){
 	// Unfortunately we can't get the packet_struct here, because we need it
 	// with its state when sending a packet
 	while (!ingame())
 		Sleep(1000);
 
-	cout << "[OBJECTS] Starting..." << hex << endl;
-	objects::Chat = read_pointer_list(pointer_lists::ChatObject);
-	objects::Player = (player*)read_pointer_list(pointer_lists::PlayerObject);
 
-	cout << "[OBJECTS] Chat is at " << (DWORD)objects::Chat << endl;
-	cout << "[OBJECTS] Player is at " << (DWORD)objects::Player << endl;
+	cout << "[OBJECTS] Starting..." << hex << endl;
+	//objects::Chat = read_pointer_list(pointer_lists::ChatObject);
+	//objects::Player = (player*)read_pointer_list(pointer_lists::PlayerObject);
+
+	//cout << "[OBJECTS] Chat is at " << (DWORD)objects::Chat << endl;
+	//cout << "[OBJECTS] Player is at " << (DWORD)objects::Player << endl;
 	cout << "[OBJECTS] Done!" << endl;
 	cout << endl;
-}
+}*/
 
 // Calls scanner.FindPattern with error checking. Can return.
 // I'm sorry, a project of mine *must* have a pair of ugly macros.
@@ -103,6 +111,8 @@ bool sigscan() {
 	findfunc(GetTime);
 	findfunc(AppendChat);
 	findfunc(GetAttackByte);
+	findfunc(PlayerRandomFunc);
+	findfunc(ChatRandomFunc);
 
 	cout << "[SIGSCAN] Done!" << endl << endl;
 	return true;
@@ -125,6 +135,8 @@ bool detours() {
 	detour(MySend);
 	detour(MyRecv);
 	detour(Chat);
+	detour(PlayerRandomFunc);
+	detour(ChatRandomFunc);
 	err = DetourTransactionCommit();
 	if (err != NO_ERROR){
 		cout << "[DETOURS] Error commiting detours!" << endl;
@@ -134,13 +146,10 @@ bool detours() {
 	cout << "[DETOURS] MySend is now at " << (DWORD)OriginalMySend << endl;
 	cout << "[DETOURS] MyRecv is now at " << (DWORD)OriginalMyRecv << endl;
 	cout << "[DETOURS] Chat is now at " << (DWORD)OriginalChat << endl;
+	cout << "[DETOURS] PlayerRandomFunc is now at " << (DWORD)OriginalPlayerRandomFunc << endl;
+	cout << "[DETOURS] ChatRandomFunc is now at " << (DWORD)OriginalChatRandomFunc << endl;
 	cout << "[DETOURS] Done!" << endl << endl;
 	return true;
-}
-
-bool ingame(){
-	// When player is not available, that's the value at its pointer
-	return read_pointer_list(pointer_lists::PlayerObject) != (void*)0x1d4;
 }
 
 void save_packet_struct(packet_struct* pkt_struct){
@@ -184,7 +193,9 @@ uint process_recv_packet(const string& buf){
 	string hex_buf = string_to_hex(buf);
 	try {
 		Packet* ppacket = parse_packet_recv(buf);
-		vector<int> allow = { HEADER_GC_CHARACTER_POINTS, HEADER_GC_ITEM_DEL };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
+		vector<int> allow = { HEADER_GC_VIEW_EQUIP };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
+		vector<int> disallow = { HEADER_GC_CHAT };
+		//if (find(disallow.begin(), disallow.end(), buf[0]) == disallow.end()){
 		if (find(allow.begin(), allow.end(), ppacket->get_buf()[0]) != allow.end())
 			cout << "[RECV IMPORTANT] " << hex_buf << endl;
 
@@ -249,4 +260,20 @@ int __fastcall HookChat(packet_struct *_this, int edx, const char* input, char p
 		return 1;
 	}
 	return OriginalChat(_this, Command::process_msg(input).c_str(), param2);
+}
+
+bool __fastcall HookPlayerRandomFunc(player* _this, int edx, void* arg){
+	if (objects::Player == nullptr){
+		objects::Player = _this;
+		cout << "[OBJECTS] Player is at " << hex << (DWORD)objects::Player << dec << endl;
+	}
+	return OriginalPlayerRandomFunc(_this, arg);
+}
+
+void __fastcall HookChatRandomFunc(void *_this, int edx, void* arg){
+	if (objects::Chat == nullptr){
+		objects::Chat = (void*)((DWORD)_this+4);
+		cout << "[OBJECTS] Chat is at " << hex << (DWORD)objects::Chat << dec << endl;
+	}
+	OriginalChatRandomFunc(_this, arg);
 }

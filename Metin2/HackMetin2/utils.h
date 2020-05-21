@@ -28,13 +28,16 @@ std::string replace_all(std::string str, const std::string& from, const std::str
 std::string color();
 
 // Returns Metin2 format color modifier for specified color hex code
-std::string color(std::string c);
+std::string color(const std::string& c);
 
 // Prints a general message to the Metin2 chat
 void print(std::string msg);
 
 // Prints an error message to the Metin2 chat
-void print_err(std::string msg);
+void print_err(const std::string& msg);
 
 // Prints an help message to the Metin2 chat
-void print_help(std::string key, std::string msg);
+void print_help(const std::string& key, const std::string& msg);
+
+// Checks if we are already logged in. TODO: check what happens when relogging
+bool ingame();

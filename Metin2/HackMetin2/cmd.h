@@ -20,7 +20,6 @@
 #include <map>
 
 #include "enemy.h"
-#include "player.h"
 #include "packet.h"
 
 typedef unsigned char byte;
