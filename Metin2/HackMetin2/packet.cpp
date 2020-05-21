@@ -190,6 +190,7 @@ string CG_Move::get_buf(){
 4: Guild
 5: Commands
 6: Llamar
+8: Mensaje grande de anuncio
 */
 CG_Chat::CG_Chat(byte type, const string& msg){
 	this->type = type;
@@ -358,12 +359,13 @@ CG_Whisper::CG_Whisper(const string& username, const string& msg){
 }
 
 CG_Whisper::CG_Whisper(const string& buf){
-	// 13 2B00 4461726B536173696E000000000000000000000000000000 05 414142424343444445454646474700 A7
+	// 13 2B00 4461726B536173696E00000000000000000000000000000005 414142424343444445454646474700 A7
 	check_size(buf, this->size);
 	ushort packet_len = u16(buf.substr(1, 2));
 	this->username = buf.substr(3, this->username_len);
 	this->username = this->username.substr(0, this->username.find('\x00')); // remove nullbytes
-	this->msg = buf.substr(3+this->username_len+1, buf.size()-(3+this->username_len+1)-2);
+	this->msg = buf.substr(3+this->username_len, buf.size()-(3+this->username_len)-2);
+	// -2 bc of last byte and msg nullbyte
 }
 
 string CG_Whisper::get_buf(){
@@ -568,7 +570,7 @@ GC_Whisper::GC_Whisper(const string& buf){
 	this->type = buf[3];
 	this->username = buf.substr(4, this->username_len);
 	this->username = this->username.substr(0, this->username.find('\x00')); // remove nullbytes
-	this->msg = buf.substr(3 + 1 + this->username_len + 1, buf.size() - (3 + 1 + this->username_len + 1));
+	this->msg = buf.substr(3 + 1 + this->username_len, buf.size() - (3 + 1 + this->username_len));
 	cout << "[RECV] WHISPER: " << this->username << ": " << this->msg << endl;
 }
 

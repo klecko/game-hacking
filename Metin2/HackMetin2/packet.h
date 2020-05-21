@@ -224,7 +224,7 @@ public:
 class CG_Whisper : public Packet {
 private:
 	static const byte header = HEADER_CG_WHISPER;
-	static const int username_len = 24;
+	static const int username_len = 25;
 	static const uint size = 4 + username_len; // + msg
 	std::string username;
 	std::string msg;

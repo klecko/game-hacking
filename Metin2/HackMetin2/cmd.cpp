@@ -92,6 +92,7 @@ void Command::attack(){
 	if (instance->id_attack){
 		CG_Attack p(0, instance->id_attack);
 		p.send();
+		print("Attacked target " + to_string(instance->id_attack));
 	} else print_err("There's no target.");
 }
 
@@ -336,6 +337,8 @@ void Command::run(const string& _cmd){
 
 	} else print_err("Unknown command: " + cmd[0]);
 
-	if (!check)
+	if (!check){
 		print_err("Bad arguments!");
+		help(cmd[0]);
+	}
 }

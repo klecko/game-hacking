@@ -11,13 +11,10 @@
 1. Teleport
 2. Investigar relogging
 5. Investigar la func a la que se llama en parse_recv_chat, parece que itera los ids
-6. Maybe in attack hack we could have only ids and not coordinates
 7. Add a function to check if we're okay: send a packet and expect answer
-8. MORE PACKETS
 9. Revisar estructura cmd
 10. Maybe I could avoid all those packs and unpacks just copying memory
 11. Check why sometimes my client segfaults with dc hack in guabina server
-12. Revisar recv whisper packet, parece que en guabina no va bien
 
 Packets attacking with a bow a metin whose id was: 191193 (0x02ead9)
 seems like there are two packets?
