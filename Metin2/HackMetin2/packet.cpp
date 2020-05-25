@@ -180,6 +180,13 @@ string CG_Move::get_buf(){
 	return buf;
 }
 
+bool CG_Move::on_hook(){
+	/*if (this->type == 3){
+		this->subtype = 0x11;
+		return true;
+	}*/
+	return false;
+}
 
 // [ CG_Chat ]
 /* [TYPES]
@@ -231,7 +238,7 @@ void CG_Target::log(){
 }
 
 bool CG_Target::on_hook(){
-	Command::set_id_attack(this->id);
+	Command::set_target(this->id);
 	return false;
 }
 
@@ -452,7 +459,9 @@ string GC_Move::get_buf() {
 /*
 01 FFD20800 8832AF43 12910E00 0FC10300 00000000 00 6500 96 64 00 00000000 00000000
 01 FCD20800 E4A1A343 F9900E00 61BE0300 00000000 00 6500 96 64 00 00000000 00000000
+01 7C790300 ED031142 B9940E00 A9DA0300 00000000 06 0200 64 64 00 00000000 00000000
 0  1        5        9        13       17       21 22   24 25
+   id      direction x        y        z      type mob
 */
 
 GC_CharacterAdd::GC_CharacterAdd(const string& buf){
@@ -535,11 +544,13 @@ GC_Chat::GC_Chat(const string& buf) {
 	check_size(buf, this->size);
 	ushort packet_len = u16(buf.substr(1, 2));
 	this->type = buf[3];
+	this->id = u32(buf.substr(4, 4));
 	this->msg = buf.substr(9, packet_len-1-2-6);
 }
 
-GC_Chat::GC_Chat(byte type, const string& msg){
+GC_Chat::GC_Chat(byte type, uint id, const string& msg){
 	this->type = type;
+	this->id = id;
 	this->msg = msg;
 }
 
@@ -549,7 +560,8 @@ string GC_Chat::get_buf(){
 	buf += this->header;
 	buf += p16(packet_len);
 	buf += this->type;
-	buf += p32(0) + '\x03'; // KINGDOM?
+	buf += p32(this->id);
+	buf += '\x03'; // KINGDOM?
 	buf += this->msg;
 	return buf;
 }

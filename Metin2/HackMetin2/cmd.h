@@ -42,7 +42,7 @@ private:
 
 	// Instance attributes
 	// Chosen target, changed when CG_Target is sent
-	uint id_attack;
+	uint target;
 	std::string username_dc;
 	std::map<uint, Enemy> enemies;
 	bool autodmg_enabled;
@@ -62,8 +62,8 @@ public:
 	// If they need an instance attribute, they'll access it through instance
 
 	// Getters and setters
-	static void set_id_attack(uint id_attack);
-	static uint get_id_attack();
+	static void set_target(uint target);
+	static uint get_target();
 	static void update_enemy(uint id, int x, int y);
 	static void delete_enemy(uint id);
 
@@ -80,5 +80,8 @@ public:
 	static void disconnect(const std::string& username, int n_packets=DISCONNECT_DEFAULT_PACKETS);
 	static void whisper(byte type, const std::string& to_user, std::string from_user, std::string msg);
 	static void packet_injection(const std::string& username, const std::string& hexbuf);
+	static void porculing();
+	static void run_GC_command(const std::string& cmd);
+	static void hack_life(const std::string& username, const std::string& cmd);
 	static void run(const std::string& cmd);
 };

@@ -132,6 +132,7 @@ public:
 	CG_Move(const std::string& buf);
 	std::string get_buf();
 	void log();
+	bool on_hook();
 };
 
 class CG_Chat : public Packet {
@@ -317,12 +318,13 @@ private:
 	static const byte header = HEADER_GC_CHAT;
 	static const uint size = 9; // + msg
 	std::string msg;
+	uint id;
 	byte type;
 
 public:
 	GC_Chat() {};
 	GC_Chat(const std::string& buf);
-	GC_Chat(byte type, const std::string& msg);
+	GC_Chat(byte type, uint id, const std::string& msg);
 	std::string get_buf();
 	void log();
 

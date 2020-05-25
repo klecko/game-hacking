@@ -193,12 +193,12 @@ uint process_recv_packet(const string& buf){
 	string hex_buf = string_to_hex(buf);
 	try {
 		Packet* ppacket = parse_packet_recv(buf);
-		vector<int> allow = { HEADER_GC_CHAT };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
-		vector<int> disallow = { HEADER_GC_CHAT };
-		//if (find(disallow.begin(), disallow.end(), buf[0]) == disallow.end()){
+		vector<int> allow = { HEADER_GC_CHARACTER_UPDATE };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
+		vector<int> disallow = { HEADER_GC_CHAT, HEADER_GC_MOVE };
+		//if (find(disallow.begin(), disallow.end(), buf[0]) == disallow.end())
 		if (find(allow.begin(), allow.end(), ppacket->get_buf()[0]) != allow.end())
-			ppacket->log();
-			//cout << "[RECV IMPORTANT] " << hex_buf << endl;
+			//ppacket->log();
+			cout << "[RECV IMPORTANT] " << hex_buf << endl;
 
 		//ppacket->log();
 		ppacket->on_hook();
