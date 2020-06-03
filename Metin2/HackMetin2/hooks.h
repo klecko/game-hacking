@@ -49,6 +49,7 @@ typedef void(__thiscall *pAppendChat_t)(void* _this, int type, const char *msg);
 typedef byte(*pGetAttackByte_t)();
 typedef bool(__thiscall *pPlayerRandomFunc_t)(player* _this, void* arg);
 typedef void(__thiscall *pChatRandomFunc_t)(void *_this, void* arg);
+typedef void(__thiscall *pParseRecvPacket_t)(packet_struct *_this);
 
 extern pMySend_t OriginalMySend;
 extern pMyRecv_t OriginalMyRecv;
@@ -58,6 +59,7 @@ extern pAppendChat_t OriginalAppendChat; //not hooking
 extern pGetAttackByte_t OriginalGetAttackByte; //not hooking
 extern pPlayerRandomFunc_t OriginalPlayerRandomFunc;
 extern pChatRandomFunc_t OriginalChatRandomFunc;
+extern pParseRecvPacket_t OriginalParseRecvPacket; //not hooking
 
 // We don't really need them here, could be in the .cpp
 int __fastcall HookMySend(packet_struct *_this);

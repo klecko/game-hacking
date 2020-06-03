@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
 
 #include "sigscan.h"
 #include "hooks.h"
@@ -23,6 +24,7 @@ pAppendChat_t OriginalAppendChat;
 pGetAttackByte_t OriginalGetAttackByte;
 pPlayerRandomFunc_t OriginalPlayerRandomFunc;
 pChatRandomFunc_t OriginalChatRandomFunc;
+pParseRecvPacket_t OriginalParseRecvPacket;
 
 const char process[] = "metin2client.exe";
 
@@ -36,6 +38,7 @@ namespace pattern {
 	const char GetAttackByte[] = "\x55\x8B\xEC\x51\x0F\xB6\x05\x74\x06\x91\x00\x0F\xB6\x88\x6C\x06\x91\x00\x0F\xB6\x15\x74\x06\x91\x00\x0F\xB6\x82\xB8\x17\x8E\x00\x33\xC8\x88\x4D\xFF";
 	const char PlayerRandomFunc[] = "\x55\x8b\xec\x83\xec\x18\x56\x57\x8b\x7d\x08\x8b\xf1\x8b\xcf\xe8";
 	const char ChatRandomFunc[] = "\x55\x8B\xEC\x83\xEC\x24\x89\x4D\xFC\x8B\x45\x08\x50\x8B\x4D\xFC";
+	const char ParseRecvPacket[] = "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x20\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x89\x4D\xEC\x8B\x4D\xEC\x81\xC1\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\xC0";
 }
 
 // Patterns masks for sigscanning
@@ -48,6 +51,7 @@ namespace mask {
 	const char GetAttackByte[] = "xxxxxxx????xxx????xxx????xxx????xxxxx";
 	const char PlayerRandomFunc[] = "xxxxxxx????x?x?x";
 	const char ChatRandomFunc[] = "xxxxxxxxxxxxxxxx";
+	const char ParseRecvPacket[] = "xxxxxx????xx????xxxxx????xxxxxxxx????xxxxxxxx????x????xxx";
 }
 
 namespace objects {
@@ -113,6 +117,7 @@ bool sigscan() {
 	findfunc(GetAttackByte);
 	findfunc(PlayerRandomFunc);
 	findfunc(ChatRandomFunc);
+	findfunc(ParseRecvPacket);
 
 	cout << "[SIGSCAN] Done!" << endl << endl;
 	return true;
@@ -188,17 +193,20 @@ int __fastcall HookMySend(packet_struct *_this) {
 	return ret;
 }
 
+ofstream f_log("LEEME_PERRA.txt");
 uint process_recv_packet(const string& buf){
 	uint size = buf.size();
 	string hex_buf = string_to_hex(buf);
 	try {
 		Packet* ppacket = parse_packet_recv(buf);
-		vector<int> allow = { HEADER_GC_CHARACTER_UPDATE };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
+		vector<int> allow = { HEADER_GC_WHISPER };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
 		vector<int> disallow = { HEADER_GC_CHAT, HEADER_GC_MOVE };
 		//if (find(disallow.begin(), disallow.end(), buf[0]) == disallow.end())
-		if (find(allow.begin(), allow.end(), ppacket->get_buf()[0]) != allow.end())
-			//ppacket->log();
-			cout << "[RECV IMPORTANT] " << hex_buf << endl;
+		if (find(allow.begin(), allow.end(), ppacket->get_buf()[0]) != allow.end()){
+			//f_log << "[RECV IMPORTANT] "; 
+			ppacket->log(f_log); 
+			//f_log << hex_buf << endl;
+		}
 
 		//ppacket->log();
 		ppacket->on_hook();
@@ -235,6 +243,8 @@ int __fastcall HookMyRecv(packet_struct *_this){
 	already_processed = 0;
 	while (already_processed < buf.size()){
 		string buf_pkt = buf.substr(already_processed);
+		if (buf_pkt[0] == HEADER_GC_WHISPER && i==0)
+			f_log << "[STARTING PROCESSING]" << endl;
 		already_processed += process_recv_packet(buf_pkt);
 		i++;
 	}

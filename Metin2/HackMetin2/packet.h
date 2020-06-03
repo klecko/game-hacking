@@ -97,19 +97,22 @@ public:
 	virtual std::string get_buf();
 
 	// Prints a description of the packet
-	virtual void log();
+	virtual void log(std::ostream& out=std::cout);
 	
 	// Called when the packet is sent or received in the hook function
 	// Should return true if the packet has been modified. It will then be sent
 	// instead of the original packet
 	virtual bool on_hook() { return false; };
 
-	// Real size of the packet. Should be the same as size for static packets.
+	// Real size of the packet. Should be the same as `size` for static packets.
 	uint bufsize() { return this->get_buf().size(); };
 
 	// Sends the packet to the server
 	int send();
 	int send(packet_struct* pkt_struct);
+
+	// Simulates receiving the packet from the server
+	int recv();
 };
 
 class CG_Move : public Packet{
@@ -131,7 +134,7 @@ public:
 	CG_Move(byte type, byte subtype, byte direction, int x, int y, uint time);
 	CG_Move(const std::string& buf);
 	std::string get_buf();
-	void log();
+	void log(std::ostream& out);
 	bool on_hook();
 };
 
@@ -147,7 +150,7 @@ public:
 	CG_Chat(const std::string& buf);
 	CG_Chat(byte type, const std::string& msg);
 	std::string get_buf();
-	void log();
+	void log(std::ostream& out);
 
 	const std::string& get_msg() { return msg; }
 	void set_msg(const std::string& msg) { this->msg = msg; }
@@ -165,7 +168,7 @@ public:
 	CG_Target() {};
 	CG_Target(const std::string& buf);
 	std::string get_buf();
-	void log();
+	void log(std::ostream& out);
 	bool on_hook();
 
 	uint get_id() { return id; }
@@ -187,7 +190,7 @@ public:
 	CG_Attack(byte type, uint id, byte b1, byte b2);
 	CG_Attack(const std::string& buf);
 	std::string get_buf();
-	void log();
+	void log(std::ostream& out);
 };
 
 class CG_ItemUse : public Packet {
@@ -201,7 +204,7 @@ public:
 	CG_ItemUse(byte item_pos);
 	CG_ItemUse(const std::string& buf);
 	std::string get_buf();
-	void log();
+	void log(std::ostream& out);
 };
 
 class CG_ItemDrop : public Packet {
@@ -219,7 +222,7 @@ public:
 	CG_ItemDrop(uint yang_amount);
 	CG_ItemDrop(const std::string& buf);
 	std::string get_buf();
-	void log();
+	void log(std::ostream& out);
 };
 
 class CG_Whisper : public Packet {
@@ -235,7 +238,7 @@ public:
 	CG_Whisper(const std::string& username, const std::string& msg);
 	CG_Whisper(const std::string& buf);
 	std::string get_buf();
-	void log();
+	void log(std::ostream& out);
 };
 
 
@@ -260,7 +263,7 @@ public:
 	GC_Move(const std::string& buf);
 	GC_Move(byte type, byte subtype, byte direction, uint id, int x, int y, int duration);
 	std::string get_buf();
-	void log();
+	void log(std::ostream& out);
 	bool on_hook();
 };
 
@@ -279,9 +282,11 @@ private:
 
 public:
 	GC_CharacterAdd() {};
+	GC_CharacterAdd(uint id, float direction, int x, int y, int z, byte type,
+		ushort mob_id, byte moving_speed, byte attack_speed);
 	GC_CharacterAdd(const std::string& buf);
 	std::string get_buf();
-	void log();
+	void log(std::ostream& out);
 	bool on_hook();
 };
 
@@ -309,7 +314,7 @@ public:
 	GC_CharacterDel(uint id);
 	GC_CharacterDel(const std::string& buf);
 	std::string get_buf();
-	void log();
+	void log(std::ostream& out);
 	bool on_hook();
 };
 
@@ -326,7 +331,7 @@ public:
 	GC_Chat(const std::string& buf);
 	GC_Chat(byte type, uint id, const std::string& msg);
 	std::string get_buf();
-	void log();
+	void log(std::ostream& out);
 
 };
 
@@ -344,7 +349,7 @@ public:
 	GC_Whisper(const std::string& buf);
 	GC_Whisper(byte type, const std::string& username, const std::string& msg);
 	std::string get_buf();
-	void log();
+	void log(std::ostream& out);
 };
 
 class GC_ItemUpdate : public Packet {
@@ -355,7 +360,7 @@ private:
 public:
 	GC_ItemUpdate() {};
 	GC_ItemUpdate(const std::string& buf);
-	void log();
+	void log(std::ostream& out);
 };
 
 class GC_ItemDel : public Packet {
@@ -366,7 +371,7 @@ private:
 public:
 	GC_ItemDel() {};
 	GC_ItemDel(const std::string& buf);
-	void log();
+	void log(std::ostream& out);
 };
 
 class GC_ItemSet : public Packet {
@@ -377,7 +382,7 @@ private:
 public:
 	GC_ItemSet() {};
 	GC_ItemSet(const std::string& buf);
-	void log();
+	void log(std::ostream& out);
 };
 
 class GC_ItemUse : public Packet {
@@ -388,7 +393,7 @@ private:
 public:
 	GC_ItemUse() {};
 	GC_ItemUse(const std::string& buf);
-	void log();
+	void log(std::ostream& out);
 };
 
 class GC_ItemDrop : public Packet {
@@ -399,5 +404,5 @@ private:
 public:
 	GC_ItemDrop() {};
 	GC_ItemDrop(const std::string& buf);
-	void log();
+	void log(std::ostream& out);
 };

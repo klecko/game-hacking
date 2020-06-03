@@ -74,10 +74,10 @@ Packet::Packet(const string& buf){
 	this->buf = buf;
 }
 
-void Packet::log(){
+void Packet::log(ostream& out){
 	// Print unknown packets
 	string hex_buf = string_to_hex(this->get_buf());
-	cout << "UKNOWN PACKET:" << hex_buf << endl;
+	out << "UKNOWN PACKET:" << hex_buf << endl;
 }
 
 string Packet::get_buf(){
@@ -106,7 +106,11 @@ void Packet::check_size(const string& buf, uint size){
 int Packet::send(packet_struct* pkt_struct){
 	// Use the given pkt_struct. Just attach to it and call OriginalMySend
 	this->attach_to_pkt_struct(pkt_struct);
-	cout << "Sent packet: " << endl;// << string_to_hex(string(pkt_struct->buf_send, pkt_struct->buf_send_len)) << endl;
+	string buf = string(pkt_struct->buf_send + pkt_struct->buf_send_offset, pkt_struct->buf_send_len - pkt_struct->buf_send_offset);
+	if (buf.size() < 100)
+		cout << "Sent packet: " << string_to_hex(buf) << endl;
+	else
+		cout << "Sent long packet." << endl;
 	//this->log();
 	return OriginalMySend(pkt_struct);
 }
@@ -116,16 +120,45 @@ int Packet::send(){
 	int ret = 0;
 	if (ready_to_send) {
 		packet_struct* new_pkt_struct = new packet_struct(std_pkt_struct); //hago una copia del pkt struct
-		new_pkt_struct->buf_send = new char[this->get_buf().length() + 1]; //creo un nuevo buffer para que no apunte al que usa el cliente
+		new_pkt_struct->buf_send = new char[this->bufsize() + 1]; //creo un nuevo buffer para que no apunte al que usa el cliente
 		new_pkt_struct->buf_send_offset = 0;
 		ret = this->send(new_pkt_struct);
-		delete new_pkt_struct->buf_send;
+		delete[] new_pkt_struct->buf_send;
 		delete new_pkt_struct;
 	}
 	else cout << "Attempted to send a packet, but there is not packet struct yet!" << endl;
 	return ret;
 }
 
+int Packet::recv(){
+	int ret = 0;
+	if (ready_to_send){
+		cout << "Receiving: " << string_to_hex(this->get_buf()) << endl;
+		uint len = this->bufsize() + 1;
+		packet_struct* new_pkt_struct = new packet_struct(std_pkt_struct);
+		new_pkt_struct->buf_recv = new char[len];
+		new_pkt_struct->buf_recv_len = len;
+		new_pkt_struct->buf_recv_offset = len; 
+		new_pkt_struct->already_processed = 0;
+		// remember: to_process = offset - already_processed
+		memcpy(new_pkt_struct->buf_recv, this->get_buf().c_str(), len-1);
+		new_pkt_struct->buf_recv[len-1] = '\x00';
+
+		// this is necessary. otherwise the first function called in ParseRecvPacket
+		// will probably return false, leading to segfault
+		int* must_set_to_0 = (int*)((char*)(new_pkt_struct) + 0x7924 + 0x10);
+		int tmp = *must_set_to_0;
+		*must_set_to_0 = 0;
+		OriginalParseRecvPacket(new_pkt_struct);
+		*must_set_to_0 = tmp;
+
+		delete[] new_pkt_struct->buf_recv;
+		delete new_pkt_struct;
+		ret = 1;
+	}
+	else cout << "Attempted to recv a packet, but there is not packet struct yet!" << endl;
+	return ret;
+}
 
 // [ CG_Move ]
 CG_Move::CG_Move(byte type, byte subtype, byte direction, int x, int y, uint time){
@@ -165,8 +198,8 @@ void CG_Move::set_type_str() {
 	}
 }
 
-void CG_Move::log(){
-	cout << "[SEND] Move packet of type " << this->type_str << " and subtype " << (int)this->subtype << ", to (" << this->x << ", " << this->y << ") and direction " << (unsigned int)this->direction << ". Time: " << this->time << endl;
+void CG_Move::log(ostream& out){
+	out << "[SEND] Move packet of type " << this->type_str << " and subtype " << (int)this->subtype << ", to (" << this->x << ", " << this->y << ") and direction " << (unsigned int)this->direction << ". Time: " << this->time << endl;
 }
 
 string CG_Move::get_buf(){
@@ -211,8 +244,8 @@ CG_Chat::CG_Chat(const string& buf){
 	this->msg = string(buf, 4, length);
 }
 
-void CG_Chat::log(){
-	cout << "[SEND] CHAT PACKET OF TYPE " << (int)this->type << ": " << this->msg << endl;
+void CG_Chat::log(ostream& out){
+	out << "[SEND] CHAT PACKET OF TYPE " << (int)this->type << ": " << this->msg << endl;
 }
 
 string CG_Chat::get_buf() {
@@ -233,8 +266,8 @@ CG_Target::CG_Target(const string& buf){
 	this->id = u32(buf.substr(1,4));
 }
 
-void CG_Target::log(){
-	cout << "[SEND] TARGET PACKET, ID: " << this->id << endl;
+void CG_Target::log(ostream& out){
+	out << "[SEND] TARGET PACKET, ID: " << this->id << endl;
 }
 
 bool CG_Target::on_hook(){
@@ -274,8 +307,8 @@ CG_Attack::CG_Attack(const string& buf){
 	this->b2 = buf[7];
 }
 
-void CG_Attack::log(){
-	cout << "[SEND] Attack packet of type " << (int)this->type << " to id " << this->id << ". Bytes: " << int(this->b1) << ", " << int(this->b2) << endl;
+void CG_Attack::log(ostream& out){
+	out << "[SEND] Attack packet of type " << (int)this->type << " to id " << this->id << ". Bytes: " << int(this->b1) << ", " << int(this->b2) << endl;
 }
 
 string CG_Attack::get_buf(){
@@ -309,8 +342,8 @@ string CG_ItemUse::get_buf(){
 	return buf;
 }
 
-void CG_ItemUse::log(){
-	cout << "[SEND] Using item " << (int)this->item_pos << endl;
+void CG_ItemUse::log(ostream& out){
+	out << "[SEND] Using item " << (int)this->item_pos << endl;
 }
 
 // [ CG_ItemDrop ]
@@ -352,11 +385,11 @@ string CG_ItemDrop::get_buf(){
 	return buf;
 }
 
-void CG_ItemDrop::log(){
+void CG_ItemDrop::log(ostream& out){
 	if (this->is_dropping_item)
-		cout << "[SEND] Dropping item " << (int)this->item_pos << ", amount " << (int)this->item_amount << endl;
+		out << "[SEND] Dropping item " << (int)this->item_pos << ", amount " << (int)this->item_amount << endl;
 	else
-		cout << "[SEND] Dropping yang, amount " << this->yang_amount << endl;
+		out << "[SEND] Dropping yang, amount " << this->yang_amount << endl;
 }
 
 // [ CG_Whisper ]
@@ -367,8 +400,9 @@ CG_Whisper::CG_Whisper(const string& username, const string& msg){
 
 CG_Whisper::CG_Whisper(const string& buf){
 	// 13 2B00 4461726B536173696E00000000000000000000000000000005 414142424343444445454646474700 A7
+	// no idea why is there a 5 at the end, but it is not necessary and can be a \x00
 	check_size(buf, this->size);
-	ushort packet_len = u16(buf.substr(1, 2));
+	ushort packet_len = u16(buf.substr(1, 2)); // not used, does not include byte at the end
 	this->username = buf.substr(3, this->username_len);
 	this->username = this->username.substr(0, this->username.find('\x00')); // remove nullbytes
 	this->msg = buf.substr(3+this->username_len, buf.size()-(3+this->username_len)-2);
@@ -376,21 +410,19 @@ CG_Whisper::CG_Whisper(const string& buf){
 }
 
 string CG_Whisper::get_buf(){
-	// packet_len does not include last byte
-	ushort packet_len = 3 + this->username_len + 1 + this->msg.size() + 1;
-	//packet_len++;
+	// packet_len does not include last byte, but it includes the nullbyte of the msg
+	ushort packet_len = 3 + this->username_len + this->msg.size() + 1;
 	string buf;
 	buf += this->header;
 	buf += p16(packet_len);
 	buf += this->username + string(this->username_len - this->username.size(), '\x00');
-	buf += '\x05'; // ??
 	buf += this->msg + '\x00';
 	buf += '\x00';
 	return buf;
 }
 
-void CG_Whisper::log(){
-	cout << "[SEND] Whispering " << this->username << ": " << this->msg << endl;
+void CG_Whisper::log(ostream& out){
+	out << "[SEND] Whispering " << this->username << ": " << this->msg << endl;
 }
 
 // [ GC_Move ]
@@ -440,8 +472,8 @@ bool GC_Move::on_hook() {
 	return false;
 }
 
-void GC_Move::log() {
-	cout << "[RECV] Move packet of id " << id << ", type " << type_str << " and subtype " << (int)subtype << ", to " << x << ", " << y << " and direction " << (unsigned int)direction << ". Time: " << time << ". Duration: " << duration << endl;
+void GC_Move::log(ostream& out){
+	out << "[RECV] Move packet of id " << id << ", type " << type_str << " and subtype " << (int)subtype << ", to " << x << ", " << y << " and direction " << (unsigned int)direction << ". Time: " << time << ". Duration: " << duration << endl;
 }
 
 string GC_Move::get_buf() {
@@ -477,6 +509,19 @@ GC_CharacterAdd::GC_CharacterAdd(const string& buf){
 	this->attack_speed = buf[25];
 }
 
+GC_CharacterAdd::GC_CharacterAdd(uint id, float direction, int x, int y, int z, byte type, 
+  ushort mob_id, byte moving_speed, byte attack_speed){
+	this->id = id;
+	this->direction = direction;
+	this->x = x;
+	this->y = y;
+	this->z = z;
+	this->type = type;
+	this->mob_id = mob_id;
+	this->moving_speed = moving_speed;
+	this->attack_speed = attack_speed;
+}
+
 string GC_CharacterAdd::get_buf(){
 	string buf;
 	buf += this->header;
@@ -493,8 +538,8 @@ string GC_CharacterAdd::get_buf(){
 	return buf;
 }
 
-void GC_CharacterAdd::log(){
-	cout << "[RECV] Character add, id " << this->id << " at (" << this->x << ", " << this->y << ", " << this->z << ") of type "
+void GC_CharacterAdd::log(ostream& out){
+	out << "[RECV] Character add, id " << this->id << " at (" << this->x << ", " << this->y << ", " << this->z << ") of type "
 		<< (int)this->type << " and mob id " << this->mob_id << endl;
 }
 
@@ -524,8 +569,8 @@ string GC_CharacterDel::get_buf(){
 	return buf;
 }
 
-void GC_CharacterDel::log(){
-	cout << "[RECV] Character del: " << this->id << endl;
+void GC_CharacterDel::log(ostream& out){
+	out << "[RECV] Character del: " << this->id << endl;
 }
 
 bool GC_CharacterDel::on_hook(){
@@ -566,8 +611,8 @@ string GC_Chat::get_buf(){
 	return buf;
 }
 
-void GC_Chat::log() {
-	cout << "[RECV] Chat packet of type " << (int)this->type << ": " << this->msg << endl;
+void GC_Chat::log(ostream& out){
+	out << "[RECV] Chat packet of type " << (int)this->type << ": " << this->msg << endl;
 }
 
 // [ GC_Whisper ]
@@ -582,8 +627,7 @@ GC_Whisper::GC_Whisper(const string& buf){
 	this->type = buf[3];
 	this->username = buf.substr(4, this->username_len);
 	this->username = this->username.substr(0, this->username.find('\x00')); // remove nullbytes
-	this->msg = buf.substr(3 + 1 + this->username_len, buf.size() - (3 + 1 + this->username_len));
-	cout << "[RECV] WHISPER: " << this->username << ": " << this->msg << endl;
+	this->msg = buf.substr(3 + 1 + this->username_len, packet_len - (3 + 1 + this->username_len));
 }
 
 GC_Whisper::GC_Whisper(byte type, const std::string& username, const std::string& msg){
@@ -603,8 +647,9 @@ string GC_Whisper::get_buf(){
 	return buf;
 }
 
-void GC_Whisper::log(){
-
+void GC_Whisper::log(ostream& out){
+	out << "[RECV] GC_Whisper from " << this->username << ": " << this->msg << endl;
+	out << string_to_hex(this->get_buf()) << endl;
 }
 
 // [ GC_ItemUpdate ]
@@ -613,9 +658,9 @@ GC_ItemUpdate::GC_ItemUpdate(const string& buf)
 
 }
 
-void GC_ItemUpdate::log() {
+void GC_ItemUpdate::log(ostream& out){
 	string hex_buf = string_to_hex(this->get_buf());
-	cout << "[RECV] GC_ItemUpdate: " << hex_buf << endl;
+	out << "[RECV] GC_ItemUpdate: " << hex_buf << endl;
 }
 
 // [ GC_ItemDel ]
@@ -625,9 +670,9 @@ GC_ItemDel::GC_ItemDel(const string& buf)
 	check_size(buf, this->size);
 }
 
-void GC_ItemDel::log() {
+void GC_ItemDel::log(ostream& out){
 	string hex_buf = string_to_hex(this->get_buf());
-	cout << "[RECV] GC_ItemDel: " << hex_buf << endl;
+	out << "[RECV] GC_ItemDel: " << hex_buf << endl;
 }
 
 // [ GC_ItemSet ]
@@ -636,9 +681,9 @@ GC_ItemSet::GC_ItemSet(const string& buf)
 	check_size(buf, this->size);
 }
 
-void GC_ItemSet::log() {
+void GC_ItemSet::log(ostream& out){
 	string hex_buf = string_to_hex(this->get_buf());
-	cout << "[RECV] GC_ItemSet: " << hex_buf << endl;
+	out << "[RECV] GC_ItemSet: " << hex_buf << endl;
 }
 
 // [ GC_ItemUse ]
@@ -647,9 +692,9 @@ GC_ItemUse::GC_ItemUse(const string& buf)
 	check_size(buf, this->size);
 }
 
-void GC_ItemUse::log() {
+void GC_ItemUse::log(ostream& out){
 	string hex_buf = string_to_hex(this->get_buf());
-	cout << "[RECV] GC_ItemUse: " << hex_buf << endl;
+	out << "[RECV] GC_ItemUse: " << hex_buf << endl;
 }
 
 // [ GC_ItemDrop ]
@@ -658,7 +703,7 @@ GC_ItemDrop::GC_ItemDrop(const string& buf)
 	check_size(buf, this->size);
 }
 
-void GC_ItemDrop::log() {
+void GC_ItemDrop::log(ostream& out){
 	string hex_buf = string_to_hex(this->get_buf());
-	cout << "[RECV] GC_ItemDrop: " << hex_buf << endl;
+	out << "[RECV] GC_ItemDrop: " << hex_buf << endl;
 }
