@@ -1,5 +1,5 @@
 ## Overview
-Metin2 is a MMORPG distributed by GameForge. This hack was developed and tested in a private server (not the official one). It includes, appart from the usual function hooking and memory manipulation, a packet system which allows creating packets, sending them to the server and simulating receiving them in a very easy way. Reversing the network protocol of the game is simpler than reversing the client, and allows you doing things that the client wouldn't allow otherwise.
+Metin2 is a MMORPG distributed by GameForge. This hack was developed and tested in a private server (not the official one). It includes, appart from the usual function hooking and memory manipulation, a packet system which allows creating packets, sending them to the server and simulating receiving them in a very easy way. Reversing the network protocol of the game is simpler than reversing the client, and allows you doing things that the client wouldn't allow otherwise. Code includes documentation about more technical details.
 
 The hack is used from the client chat. Some of the hacks it includes are wallhack, dmg hack, attracting enemies, chat hacks, etc. Creating bots once you have control over packets would be easy. But there is something better.
 
