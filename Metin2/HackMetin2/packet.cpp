@@ -259,7 +259,6 @@ string CG_Chat::get_buf() {
 }
 
 
-
 // [ CG_Target ]
 CG_Target::CG_Target(const string& buf){
 	check_size(buf, this->size);
@@ -322,6 +321,7 @@ string CG_Attack::get_buf(){
 	return buf;
 }
 
+
 // [ CG_ItemUse ]
 CG_ItemUse::CG_ItemUse(byte item_pos){
 	this->item_pos = item_pos;
@@ -345,6 +345,7 @@ string CG_ItemUse::get_buf(){
 void CG_ItemUse::log(ostream& out){
 	out << "[SEND] Using item " << (int)this->item_pos << endl;
 }
+
 
 // [ CG_ItemDrop ]
 CG_ItemDrop::CG_ItemDrop(byte item_pos, byte item_amount){
@@ -392,6 +393,7 @@ void CG_ItemDrop::log(ostream& out){
 		out << "[SEND] Dropping yang, amount " << this->yang_amount << endl;
 }
 
+
 // [ CG_Whisper ]
 CG_Whisper::CG_Whisper(const string& username, const string& msg){
 	this->username = username;
@@ -405,8 +407,8 @@ CG_Whisper::CG_Whisper(const string& buf){
 	ushort packet_len = u16(buf.substr(1, 2)); // not used, does not include byte at the end
 	this->username = buf.substr(3, this->username_len);
 	this->username = this->username.substr(0, this->username.find('\x00')); // remove nullbytes
-	this->msg = buf.substr(3+this->username_len, buf.size()-(3+this->username_len)-2);
 	// -2 bc of last byte and msg nullbyte
+	this->msg = buf.substr(3+this->username_len, buf.size()-(3+this->username_len)-2);
 }
 
 string CG_Whisper::get_buf(){
@@ -424,6 +426,7 @@ string CG_Whisper::get_buf(){
 void CG_Whisper::log(ostream& out){
 	out << "[SEND] Whispering " << this->username << ": " << this->msg << endl;
 }
+
 
 // [ GC_Move ]
 GC_Move::GC_Move(const string& buf) {
@@ -487,6 +490,7 @@ string GC_Move::get_buf() {
 	return buf;
 }
 
+
 // [ GC_CharacterAdd ]
 /*
 01 FFD20800 8832AF43 12910E00 0FC10300 00000000 00 6500 96 64 00 00000000 00000000
@@ -499,7 +503,7 @@ string GC_Move::get_buf() {
 GC_CharacterAdd::GC_CharacterAdd(const string& buf){
 	check_size(buf, this->size);
 	this->id = u32(buf.substr(1, 4));
-	this->direction = 0; // buf.substr(5,4) as float
+	this->direction = 0; // TODO  buf.substr(5,4) as float
 	this->x = u32(buf.substr(9, 4));
 	this->y = u32(buf.substr(13, 4));
 	this->z = u32(buf.substr(17, 4));
@@ -526,7 +530,7 @@ string GC_CharacterAdd::get_buf(){
 	string buf;
 	buf += this->header;
 	buf += p32(this->id);
-	buf += p32(0); // direction as float
+	buf += p32(0); // TODO  direction as float
 	buf += p32(this->x) + p32(this->y) + p32(this->z);
 	buf += this->type;
 	buf += p16(this->mob_id);
@@ -548,9 +552,11 @@ bool GC_CharacterAdd::on_hook(){
 	return false;
 }
 
+
 // [ GC_CharacterAdditionalInfo ]
 // TODO
 std::string GC_CharacterAdditionalInfo::get_buf() { return string(this->size, 'A'); }
+
 
 // [ GC_CharacterDel ]
 GC_CharacterDel::GC_CharacterDel(uint id){
@@ -577,6 +583,7 @@ bool GC_CharacterDel::on_hook(){
 	Command::delete_enemy(this->id);
 	return false;
 }
+
 
 // [ GC_Chat ]
 /*
@@ -615,6 +622,7 @@ void GC_Chat::log(ostream& out){
 	out << "[RECV] Chat packet of type " << (int)this->type << ": " << this->msg << endl;
 }
 
+
 // [ GC_Whisper ]
 /*
 22 2100 00 4B6C65636B6100000000000000000000000000000000000000 41414141
@@ -652,16 +660,16 @@ void GC_Whisper::log(ostream& out){
 	out << string_to_hex(this->get_buf()) << endl;
 }
 
+
 // [ GC_ItemUpdate ]
 GC_ItemUpdate::GC_ItemUpdate(const string& buf)
-	: Packet(buf) {
-
-}
+	: Packet(buf) { }
 
 void GC_ItemUpdate::log(ostream& out){
 	string hex_buf = string_to_hex(this->get_buf());
 	out << "[RECV] GC_ItemUpdate: " << hex_buf << endl;
 }
+
 
 // [ GC_ItemDel ]
 // 14 01 1400 0000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -675,6 +683,7 @@ void GC_ItemDel::log(ostream& out){
 	out << "[RECV] GC_ItemDel: " << hex_buf << endl;
 }
 
+
 // [ GC_ItemSet ]
 GC_ItemSet::GC_ItemSet(const string& buf)
 	: Packet(buf) {
@@ -686,6 +695,7 @@ void GC_ItemSet::log(ostream& out){
 	out << "[RECV] GC_ItemSet: " << hex_buf << endl;
 }
 
+
 // [ GC_ItemUse ]
 GC_ItemUse::GC_ItemUse(const string& buf)
 	: Packet(buf) {
@@ -696,6 +706,7 @@ void GC_ItemUse::log(ostream& out){
 	string hex_buf = string_to_hex(this->get_buf());
 	out << "[RECV] GC_ItemUse: " << hex_buf << endl;
 }
+
 
 // [ GC_ItemDrop ]
 GC_ItemDrop::GC_ItemDrop(const string& buf)

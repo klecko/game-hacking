@@ -176,7 +176,7 @@ int __fastcall HookMySend(packet_struct *_this) {
 	save_packet_struct(_this);
 
 	// Doing a process_send_packet and detecting when a packet has been
-	// modified when there are several packets seems difficult
+	// modified when there are several packets seems difficult. I'm not doing it atm.
 	try {
 		Packet* ppacket = parse_packet_send(buf);
 		ppacket->log();
@@ -193,26 +193,24 @@ int __fastcall HookMySend(packet_struct *_this) {
 	return ret;
 }
 
-ofstream f_log("LEEME_PERRA.txt");
 uint process_recv_packet(const string& buf){
 	uint size = buf.size();
 	string hex_buf = string_to_hex(buf);
 	try {
 		Packet* ppacket = parse_packet_recv(buf);
-		vector<int> allow = { HEADER_GC_WHISPER };//{HEADER_GC_MOVE, HEADER_GC_ITEM_UPDATE, HEADER_GC_ITEM_DEL, HEADER_GC_ITEM_SET, HEADER_GC_ITEM_USE, HEADER_GC_ITEM_DROP};
+		// For logging
+		vector<int> allow = { HEADER_GC_WHISPER };
 		vector<int> disallow = { HEADER_GC_CHAT, HEADER_GC_MOVE };
 		//if (find(disallow.begin(), disallow.end(), buf[0]) == disallow.end())
 		if (find(allow.begin(), allow.end(), ppacket->get_buf()[0]) != allow.end()){
-			//f_log << "[RECV IMPORTANT] "; 
-			ppacket->log(f_log); 
-			//f_log << hex_buf << endl;
+			cout << "[RECV IMPORTANT] " << hex_buf << endl;
 		}
 
+		// Too much noise
 		//ppacket->log();
 		ppacket->on_hook();
 
 		size = ppacket->bufsize();
-		//cout << size << endl;
 		delete ppacket;
 
 	} catch (exception& e) {
@@ -237,14 +235,13 @@ int __fastcall HookMyRecv(packet_struct *_this){
 	// equals _this->buf_recv + offset - already_processed
 	string buf = string(_this->buf_recv + _this->buf_recv_offset - len, len);
 	string hex_buf = string_to_hex(buf);
+
 	// Process every packet in the buf. Will stop when it reaches an unknown
 	// packet because we won't know its size.
 	int i = 0;
 	already_processed = 0;
 	while (already_processed < buf.size()){
 		string buf_pkt = buf.substr(already_processed);
-		if (buf_pkt[0] == HEADER_GC_WHISPER && i==0)
-			f_log << "[STARTING PROCESSING]" << endl;
 		already_processed += process_recv_packet(buf_pkt);
 		i++;
 	}
@@ -273,6 +270,7 @@ int __fastcall HookChat(packet_struct *_this, int edx, const char* input, char p
 	return OriginalChat(_this, Command::process_msg(input).c_str(), param2);
 }
 
+// Simple hook for getting the player object.
 bool __fastcall HookPlayerRandomFunc(player* _this, int edx, void* arg){
 	if (objects::Player == nullptr){
 		objects::Player = _this;
@@ -281,6 +279,7 @@ bool __fastcall HookPlayerRandomFunc(player* _this, int edx, void* arg){
 	return OriginalPlayerRandomFunc(_this, arg);
 }
 
+// Simple hook for getting the chat object.
 void __fastcall HookChatRandomFunc(void *_this, int edx, void* arg){
 	if (objects::Chat == nullptr){
 		objects::Chat = (void*)((DWORD)_this+4);

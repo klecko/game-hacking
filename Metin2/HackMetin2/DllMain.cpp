@@ -9,38 +9,17 @@
 /*
 [TODO]
 1. Teleport
-2. Investigar relogging
-5. Investigar la func a la que se llama en parse_recv_chat, parece que itera los ids
-4. Hacer posible lo de ejecutar server commands en local
-5. Hacer que se puedan recibir paquetes a voluntad
-6. Mirar por qué a veces en whisp el nombre y el mensaje se juntan en uno. Si el cliente lo
-	está recibiendo todo como user, igual se puede hacer overflow
-9. Revisar estructura cmd
+2. Avoid hack crashing when relogging
+6. Investigate why sometimes in whisp command the name and msg join together.
+	If clients is receiving everything as user, maybe we can overflow
+7. [DOIT] think about fuzzing client calling the recv packet functions with packets that
+	can be injected
 10. Maybe I could avoid all those packs and unpacks just copying memory
 11. Check why sometimes my client segfaults with dc hack in guabina server
 
-Packets attacking with a bow a metin whose id was: 191193 (0x02ead9)
-seems like there are two packets?
-
-header target_id(int) ?? another_packet
-parece que ?? va cambiando :(
-
-33 D9EA0200 70A30E00718102006F 07030E0468A10E0066B90300A8BF1F020C
-360015
-33D9EA020070A30E0071810200A407030E0468A10E0066B9030002C31F02DC
-36008D
-33D9EA020070A30E00718102004F07030E0468A10E0066B903005CC61F020B
-3600A6
-33D9EA020070A30E00718102004707030E0468A10E0066B90300B6C91F02A5
-3600B7
-33D9EA020070A30E0071810200A507030E0468A10E0066B9030010CD1F02F0
-360041
-33D9EA020070A30E00718102001707030E0468A10E0066B903006AD01F026C
-3600FE
-33D9EA020070A30E00718102009C07030E0468A10E0066B90300C4D31F020D
-360063
 
 
+[NOTAS]
 [PACKET_STRUCT2]+c parece puntero a algo que parece el player, tiene el nombre.
 y [[PACKET_STRUCT2]+c]+1d4] parece puntero a algo como player_stats, que es lo que yo ahora mismo llamo player
 
@@ -67,7 +46,7 @@ Funcion EVENTFUNC(recovery_event) en archivo char.cpp
 
 [ INVESTIGACION HACK LIFE ]
 con UNC path \\192.168.1.47\test_klecko\payload.exe:
-https://gyazo.com/c19489f7a05467e9d05ddab08a19b79f?token=5e1fa641fc05fe1cbb6a0dba6e4ca9dd
+https://gyazo.com/c19489f7a05467e9d05ddab08a19b79f
 https://gyazo.com/3c3ba70c1215e34fd274c507590b4e07
 https://gyazo.com/0a87d7acbc3847fb43b9e7a1b6164f8f
 parece IE no lo abre si no esta en trusted sites
@@ -82,13 +61,11 @@ https://gyazo.com/9beb5325b5edf8c35e2ea4842fab5c70
 https://gyazo.com/bc2390bb37903c26e03d44cbfddf87a8
 works. parece que salta el antivirus, pero probablemente se pueda evitar
 
-
 con http 192.168.1.47 y un link a UNC \\192.168.1.47\test_klecko\payload.exe:
 no abre links UNC
 
 
-
-DOS OPCIONES:
+DOS CASOS HIPOTÉTICOS:
 1. UNC path a la carpeta, poner un README que convenza a ejecutar. el antivirus suda.
 2. HTTP path a sitio metin2lion phishing que convenza a descargar y ejecutar. hacer que el binario no sea detectado por el antivirus.
 
@@ -109,15 +86,16 @@ Uri schemes posibles:
 	- Abrir vscode, libreoffice. abrir archivo malicioso? hace falta que diga que sí a ejecutar macros.
 
 [INVESTIGAR NTLM HASH]
+Es posible conseguir el NetNTLM hash del usuario haciendo que abra mi servidor samba.
+
 
 El packet injection va como el culo, no funciona en ch1
 
 
-
-[ INVESTIGACION ORIGEN HACK_LIFE ]
+[ INVESTIGACION ROOT CAUSE PACKET INJECTION ]
 El cliente realiza un primer recv en el que recibe todo el padding. El último paquete que recibe
 está cortado. En parse_recv_whisper intenta recibir todo el paquete, pero como no ha llegado devuelve
-false, y al devolver false se imprime el error:
+false, y al devolver false se imprime el siguiente error en syserr.txt:
 	0603 00:06:41401 :: Phase Game does not handle this header (header: 34, last: 34, 34)
 
 El segundo recv es el que recibe el paquete inyectado.
@@ -125,7 +103,6 @@ El segundo recv es el que recibe el paquete inyectado.
 - Investigar cómo los procesa el server y por qué pasa eso.
 
 */
-
 
 
 using namespace std;

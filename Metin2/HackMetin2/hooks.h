@@ -1,3 +1,15 @@
+/**
+ * Hooks - provides function hooks, sigscanning and all the low level stuff
+ *
+ * I'm getting game objects and functions through sigscanning, which seems to
+ * be much more reliable across different versions than having hardcoded
+ * offsets. I used to do that before so there's some related commented code.
+ *
+ * I'm performing functions hooks with Microsoft Detours:
+ * https://github.com/microsoft/Detours
+
+*/
+
 #ifndef __HOOKSH__
 #define __HOOKSH__
 

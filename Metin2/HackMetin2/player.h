@@ -1,3 +1,4 @@
+// Produced by ghidra
 #pragma once
 
 typedef unsigned char   undefined;

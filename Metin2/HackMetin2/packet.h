@@ -6,15 +6,15 @@
  * are not encrypted yet. I called those functions MySend and MyRecv. Their 
  * single parameter is a pointer to a struct I called packet_struct. It has a
  * lot of fields, most important are buf_send and buf_recv, which contains the
- * data that is being sended or received. 
+ * data that is being sent or received. 
  *
  * The important thing is that, instead of creating this packet_struct from 
  * scratch correctly each time we need to send a fake packet, we copy it the
  * first time an ingame packet is sent, and then we just have to duplicate it
- * and set its send buffer accordingly. This means we can not send packets
- * until we have this copyable packet_struct, called std_pkt_struct, with the
- * positive side of not having to figure out what is every field of the
- * structure.
+ * and set its send or recv buffer accordingly. This means we can not send 
+ * packets until we have this copyable packet_struct, called std_pkt_struct,
+ * with the positive side of not having to figure out what is every field of
+ * the structure.
  *
  * For the purpose of giving some abstraction, we have a class Packet and a
  * subclass for each different type of packet. 
@@ -27,11 +27,13 @@
  *
  * Also, those packets we want to build and send from scratch should implement
  * an appropiate constructor. Finally, the `on_hook` method can be also
- * implemented.
+ * implemented, which acts as an event handlers for when a packet is received
+ * or sent.
  *
- * The Packet class implements the `send` method, which is generic to every
- * packet and sends the packet to the server. If you don't provide a
- * packet_struct, it will create one as explained before.
+ * The Packet class implements the `send` and `recv` methods, which are generic
+ * to every packet and send the packet to the server or simulates having
+ * received it. If you don't provide a packet_struct, it will create one as 
+ * explained before.
  *
  * Example of creating and sending an ItemUse packet:
  *		CG_ItemUse p(inventory_pos);
@@ -115,6 +117,7 @@ public:
 	int recv();
 };
 
+
 class CG_Move : public Packet{
 private:
 	static const byte header = HEADER_CG_MOVE;
@@ -138,6 +141,7 @@ public:
 	bool on_hook();
 };
 
+
 class CG_Chat : public Packet {
 private:
 	static const byte header = HEADER_CG_CHAT;
@@ -155,7 +159,6 @@ public:
 	const std::string& get_msg() { return msg; }
 	void set_msg(const std::string& msg) { this->msg = msg; }
 };
-
 
 
 class CG_Target : public Packet {
@@ -193,6 +196,7 @@ public:
 	void log(std::ostream& out);
 };
 
+
 class CG_ItemUse : public Packet {
 private:
 	static const byte header = HEADER_CG_ITEM_USE;
@@ -206,6 +210,7 @@ public:
 	std::string get_buf();
 	void log(std::ostream& out);
 };
+
 
 class CG_ItemDrop : public Packet {
 private:
@@ -224,6 +229,7 @@ public:
 	std::string get_buf();
 	void log(std::ostream& out);
 };
+
 
 class CG_Whisper : public Packet {
 private:
@@ -318,6 +324,7 @@ public:
 	bool on_hook();
 };
 
+
 class GC_Chat : public Packet {
 private:
 	static const byte header = HEADER_GC_CHAT;
@@ -334,6 +341,7 @@ public:
 	void log(std::ostream& out);
 
 };
+
 
 class GC_Whisper : public Packet {
 private:
@@ -352,6 +360,7 @@ public:
 	void log(std::ostream& out);
 };
 
+
 class GC_ItemUpdate : public Packet {
 private:
 	static const byte header = HEADER_GC_ITEM_UPDATE;
@@ -362,6 +371,7 @@ public:
 	GC_ItemUpdate(const std::string& buf);
 	void log(std::ostream& out);
 };
+
 
 class GC_ItemDel : public Packet {
 private:
@@ -374,6 +384,7 @@ public:
 	void log(std::ostream& out);
 };
 
+
 class GC_ItemSet : public Packet {
 private:
 	static const byte header = HEADER_GC_ITEM_SET;
@@ -385,6 +396,7 @@ public:
 	void log(std::ostream& out);
 };
 
+
 class GC_ItemUse : public Packet {
 private:
 	static const byte header = HEADER_GC_ITEM_USE;
@@ -395,6 +407,7 @@ public:
 	GC_ItemUse(const std::string& buf);
 	void log(std::ostream& out);
 };
+
 
 class GC_ItemDrop : public Packet {
 private:

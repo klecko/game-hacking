@@ -55,8 +55,7 @@ string p(uint bytes, int n){
 	return result;
 }
 
-vector<string> split(const string& s, char delimiter)
-{
+vector<string> split(const string& s, char delimiter){
 	vector<std::string> tokens;
 	string token;
 	istringstream tokenStream(s);
